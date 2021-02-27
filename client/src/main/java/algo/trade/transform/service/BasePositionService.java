@@ -8,7 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.stereotype.Service;
 
-import algo.trade.beans.TradeVO;
+import algo.trade.bot.beans.TradeVO;
 import algo.trade.constants.SystemConstants;
 import algo.trade.errors.PositionOpenException;
 
@@ -71,7 +71,7 @@ public class BasePositionService extends BaseService {
 	}
 
 	/**
-	 * Computes total return from all currency sets in a given set
+	 * Computes total return from all item sets in a given set
 	 * 
 	 * @param trades
 	 * @return

@@ -3,8 +3,8 @@ package algo.trade.market.client;
 import java.util.List;
 import java.util.Map;
 
-import algo.trade.beans.TradeVO;
 import algo.trade.bot.BotDefinition;
+import algo.trade.bot.beans.TradeVO;
 import algo.trade.market.beans.HistoricalTradeVO;
 import algo.trade.market.beans.Kline;
 import algo.trade.market.beans.RelevantItemInfoVO;

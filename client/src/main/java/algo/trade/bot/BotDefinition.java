@@ -16,7 +16,7 @@ public class BotDefinition {
 	private String marketName;
 	private BigDecimal initialInvestment;
 	private BigDecimal currentMoney;
-	private String baseCurrency;
+	private String fiatCurrency;
 	private Date startTime;
 	private String status;
 	
@@ -43,12 +43,6 @@ public class BotDefinition {
 	}
 	public void setInitialInvestment(BigDecimal initialInvestment) {
 		this.initialInvestment = initialInvestment;
-	}
-	public String getBaseCurrency() {
-		return baseCurrency;
-	}
-	public void setBaseCurrency(String baseCurrency) {
-		this.baseCurrency = baseCurrency;
 	}
 	public String getLifecycleName() {
 		return lifecycleName;
@@ -80,6 +74,12 @@ public class BotDefinition {
 		return "BotInstance [lifecycleName=" + lifecycleName
 				+ ", strategyName=" + strategyName 
 				+ ", marketName=" + marketName + ", initialInvestment=" + initialInvestment + ", baseCurrency="
-				+ baseCurrency + "]";
+				+ fiatCurrency + "]";
+	}
+	public String getFiatCurrency() {
+		return fiatCurrency;
+	}
+	public void setFiatCurrency(String fiatCurrency) {
+		this.fiatCurrency = fiatCurrency;
 	}
 }

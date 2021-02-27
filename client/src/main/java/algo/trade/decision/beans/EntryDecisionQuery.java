@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
+import algo.trade.bot.BotDefinition;
 import algo.trade.market.beans.Kline;
 import algo.trade.market.beans.RelevantItemInfoVO;
 /**
@@ -33,6 +34,8 @@ public class EntryDecisionQuery implements Serializable {
 	 */
 	private long currentTime;
 	
+	private BotDefinition bot;
+	
 	public Map<String, List<Kline>> getMarketData() {
 		return marketData;
 	}
@@ -50,5 +53,11 @@ public class EntryDecisionQuery implements Serializable {
 	}
 	public void setCurrentTime(long currentTime) {
 		this.currentTime = currentTime;
+	}
+	public BotDefinition getBot() {
+		return bot;
+	}
+	public void setBot(BotDefinition bot) {
+		this.bot = bot;
 	}
 }

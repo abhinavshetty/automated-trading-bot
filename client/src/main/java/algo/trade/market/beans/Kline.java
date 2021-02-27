@@ -1,5 +1,7 @@
 package algo.trade.market.beans;
 
+import java.math.BigDecimal;
+
 public class Kline implements Comparable<Kline> {
 	protected long openTime;
 	protected String itemName;
@@ -12,16 +14,16 @@ public class Kline implements Comparable<Kline> {
 	}
 
 	protected long closeTime;
-	protected double open;
-	protected double close;
-	protected double amplitude;
-	protected double percentChange;
-	protected double high;
-	protected double low;
-	protected double volume;
+	protected BigDecimal open;
+	protected BigDecimal close;
+	protected BigDecimal amplitude;
+	protected BigDecimal percentChange;
+	protected BigDecimal high;
+	protected BigDecimal low;
+	protected BigDecimal volume;
 	protected int numberOfTrades;
-	protected double takerBuyBaseAssetVolume;
-	protected double takerBuyQuoteAssetVolume;
+	protected BigDecimal takerBuyBaseAssetVolume;
+	protected BigDecimal takerBuyQuoteAssetVolume;
 	
 	/**
 	 * @param open
@@ -32,8 +34,8 @@ public class Kline implements Comparable<Kline> {
 	 * @param low
 	 * @param volume
 	 */
-	public Kline(long openTime, double open, double close, double amplitude, double percentChange, double high, double low,
-			double volume) {
+	public Kline(long openTime, BigDecimal open, BigDecimal close, BigDecimal amplitude, BigDecimal percentChange, BigDecimal high, BigDecimal low,
+			BigDecimal volume) {
 		super();
 		this.openTime = openTime;
 		this.open = open;
@@ -57,47 +59,47 @@ public class Kline implements Comparable<Kline> {
 		// TODO Auto-generated constructor stub
 	}
 
-	public double getOpen() {
+	public BigDecimal getOpen() {
 		return open;
 	}
-	public double getHigh() {
+	public BigDecimal getHigh() {
 		return high;
 	}
-	public void setHigh(double high) {
+	public void setHigh(BigDecimal high) {
 		this.high = high;
 	}
-	public double getLow() {
+	public BigDecimal getLow() {
 		return low;
 	}
-	public void setLow(double low) {
+	public void setLow(BigDecimal low) {
 		this.low = low;
 	}
-	public void setOpen(double open) {
+	public void setOpen(BigDecimal open) {
 		this.open = open;
 	}
-	public double getClose() {
+	public BigDecimal getClose() {
 		return close;
 	}
-	public void setClose(double close) {
+	public void setClose(BigDecimal close) {
 		this.close = close;
 	}
 	
-	public double getPercentChange() {
-		return (close - open) / close;
+	public BigDecimal getPercentChange() {
+		return (close.subtract(open)).divide(close);
 	}
-	public void setPercentChange(double percentChange) {
+	public void setPercentChange(BigDecimal percentChange) {
 		this.percentChange = percentChange;
 	}
-	public double getAmplitude() {
-		return (high - low) / low;
+	public BigDecimal getAmplitude() {
+		return (high.subtract(low)).divide(open);
 	}
-	public void setAmplitude(double amplitude) {
+	public void setAmplitude(BigDecimal amplitude) {
 		this.amplitude = amplitude;
 	}
-	public double getVolume() {
+	public BigDecimal getVolume() {
 		return volume;
 	}
-	public void setVolume(double volume) {
+	public void setVolume(BigDecimal volume) {
 		this.volume = volume;
 	}
 	
@@ -122,19 +124,19 @@ public class Kline implements Comparable<Kline> {
 		this.numberOfTrades = numberOfTrades;
 	}
 
-	public double getTakerBuyBaseAssetVolume() {
+	public BigDecimal getTakerBuyBaseAssetVolume() {
 		return takerBuyBaseAssetVolume;
 	}
 
-	public void setTakerBuyBaseAssetVolume(double takerBuyBaseAssetVolume) {
+	public void setTakerBuyBaseAssetVolume(BigDecimal takerBuyBaseAssetVolume) {
 		this.takerBuyBaseAssetVolume = takerBuyBaseAssetVolume;
 	}
 
-	public double getTakerBuyQuoteAssetVolume() {
+	public BigDecimal getTakerBuyQuoteAssetVolume() {
 		return takerBuyQuoteAssetVolume;
 	}
 
-	public void setTakerBuyQuoteAssetVolume(double takerBuyQuoteAssetVolume) {
+	public void setTakerBuyQuoteAssetVolume(BigDecimal takerBuyQuoteAssetVolume) {
 		this.takerBuyQuoteAssetVolume = takerBuyQuoteAssetVolume;
 	}
 

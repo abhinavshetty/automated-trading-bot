@@ -4,7 +4,8 @@ import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
-import algo.trade.beans.TradeVO;
+import algo.trade.bot.BotDefinition;
+import algo.trade.bot.beans.TradeVO;
 import algo.trade.market.beans.Kline;
 import algo.trade.market.beans.RelevantItemInfoVO;
 
@@ -32,6 +33,7 @@ public class SecondaryActionDecisionQuery implements Serializable {
 	 */
 	private RelevantItemInfoVO itemInfo;
 	
+	private BotDefinition bot;
 
 	public Map<String, List<Kline>> getMarketData() {
 		return marketData;
@@ -63,5 +65,13 @@ public class SecondaryActionDecisionQuery implements Serializable {
 
 	public void setItemInfo(RelevantItemInfoVO itemInfo) {
 		this.itemInfo = itemInfo;
+	}
+
+	public BotDefinition getBot() {
+		return bot;
+	}
+
+	public void setBot(BotDefinition bot) {
+		this.bot = bot;
 	}
 }

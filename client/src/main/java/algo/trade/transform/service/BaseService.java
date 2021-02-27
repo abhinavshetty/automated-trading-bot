@@ -18,6 +18,7 @@ public abstract class BaseService {
 	protected Logger LOGGER() {
 		if (this.LOG == null) {
 			LOG = LogManager.getLogger(this.getClass());
+			LOG.info("Created logger for class : " + this.getClass());
 		}
 		return this.LOG;
 	};

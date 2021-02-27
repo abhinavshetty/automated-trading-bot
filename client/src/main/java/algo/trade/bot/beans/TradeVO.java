@@ -1,4 +1,4 @@
-package algo.trade.beans;
+package algo.trade.bot.beans;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
