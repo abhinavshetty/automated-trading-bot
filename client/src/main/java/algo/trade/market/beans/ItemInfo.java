@@ -9,13 +9,13 @@ import java.math.BigDecimal;
  * @author Abhinav
  *
  */
-public class RelevantItemInfoVO implements Serializable {
+public class ItemInfo implements Serializable {
 	
 	private BigDecimal monthlyTradeVolume;
 	
-	public int compareTo(RelevantItemInfoVO o) {
+	public int compareTo(ItemInfo o) {
 		// TODO Auto-generated method stub
-		BigDecimal vol=((RelevantItemInfoVO) o).getMonthlyTradeVolume();
+		BigDecimal vol=((ItemInfo) o).getMonthlyTradeVolume();
         /* For Ascending order*/
         return this.monthlyTradeVolume.subtract(vol).intValue();
 	}
@@ -28,7 +28,7 @@ public class RelevantItemInfoVO implements Serializable {
 	/**
 	 * Default Constructor
 	 */
-	public RelevantItemInfoVO() {
+	public ItemInfo() {
 		super();
 		// TODO Auto-generated constructor stub
 		this.monthlyTradeVolume = BigDecimal.ZERO;
@@ -39,7 +39,7 @@ public class RelevantItemInfoVO implements Serializable {
 	 * @param quantityPrecision
 	 * @param currentlyInTrade
 	 */
-	public RelevantItemInfoVO(RelevantItemInfoVO ticker) {
+	public ItemInfo(ItemInfo ticker) {
 		super();
 		this.symbol = ticker.getSymbol();
 		this.pricePrecision = ticker.getPricePrecision();
@@ -109,7 +109,7 @@ public class RelevantItemInfoVO implements Serializable {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		RelevantItemInfoVO other = (RelevantItemInfoVO) obj;
+		ItemInfo other = (ItemInfo) obj;
 		if (pricePrecision != other.pricePrecision)
 			return false;
 		if (quantityPrecision != other.quantityPrecision)

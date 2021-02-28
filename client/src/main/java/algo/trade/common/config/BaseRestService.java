@@ -2,6 +2,7 @@ package algo.trade.common.config;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
@@ -24,14 +25,28 @@ public class BaseRestService {
 	@Autowired
 	private RestTemplate restTemplate;
 
+	private MultiValueMap<String, String> initializeHeaders(Map<String, String> inputHeaders) {
+		MultiValueMap<String, String> result = new LinkedMultiValueMap<>();
+		result.set("content-type", "application/json");
+		
+		// add custom headers
+		if (result != null) {
+			for (String key : inputHeaders.keySet()) {
+				result.set(key, inputHeaders.get(key));
+			}
+		}
+
+		return result;
+	}
+
 	/**
 	 * makes POST REST call for no input and gets single object output
 	 * 
 	 * @return Object of type T
 	 */
-	public <T extends Object> T postWithoutInputForSingleOutput(String url, Class<T> outputClass) {
-		MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
-		headers.set("content-type", "application/json");
+	public <T extends Object> T postWithoutInputForSingleOutput(Map<String, String> inputHeaders, String url,
+			Class<T> outputClass) {
+		MultiValueMap<String, String> headers = initializeHeaders(inputHeaders);
 		HttpEntity<?> request = new HttpEntity<>(headers);
 		Object restResponse = restTemplate.exchange(url, HttpMethod.POST, request, outputClass).getBody();
 
@@ -46,10 +61,9 @@ public class BaseRestService {
 	 * 
 	 * @return Object of type T
 	 */
-	public <T extends Object> T postWithSingleInputForSingleOutput(Object input, String url,
-			Class<T> outputClass) {
-		MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
-		headers.set("content-type", "application/json");
+	public <T extends Object> T postWithSingleInputForSingleOutput(Object input, Map<String, String> inputHeaders,
+			String url, Class<T> outputClass) {
+		MultiValueMap<String, String> headers = initializeHeaders(inputHeaders);
 		HttpEntity<?> request = new HttpEntity<>(input, headers);
 		Object restResponse = restTemplate.exchange(url, HttpMethod.POST, request, outputClass).getBody();
 
@@ -59,15 +73,14 @@ public class BaseRestService {
 
 		return outputClass.cast(restResponse);
 	}
-	
+
 	/**
 	 * makes POST REST call for no input and gets list output
 	 * 
 	 * @return ArrayList of objects of type T
 	 */
-	public <T> List<T> postWithoutInputForListOutput(String url, Class<T> outputListClass) {
-		MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
-		headers.set("content-type", "application/json");
+	public <T> List<T> postWithoutInputForListOutput(Map<String, String> inputHeaders, String url, Class<T> outputListClass) {
+		MultiValueMap<String, String> headers = initializeHeaders(inputHeaders);
 		HttpEntity<?> request = new HttpEntity<>(headers);
 		List<Object> restResponse = restTemplate
 				.exchange(url, HttpMethod.POST, request, new ParameterizedTypeReference<List<Object>>() {
@@ -77,13 +90,13 @@ public class BaseRestService {
 		for (Object item : restResponse) {
 			result.add(outputListClass.cast(item));
 		}
-		
+
 		headers = null;
 		url = null;
 		request = null;
 		restResponse = null;
 		outputListClass = null;
-		
+
 		return result;
 	}
 
@@ -92,9 +105,8 @@ public class BaseRestService {
 	 * 
 	 * @return ArrayList of objects of type T
 	 */
-	public <T> List<T> postWithSingleInputForListOutput(Object input, String url, Class<T> outputListClass) {
-		MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
-		headers.set("content-type", "application/json");
+	public <T> List<T> postWithSingleInputForListOutput(Map<String, String> inputHeaders, Object input, String url, Class<T> outputListClass) {
+		MultiValueMap<String, String> headers = initializeHeaders(inputHeaders);
 		HttpEntity<?> request = new HttpEntity<>(input, headers);
 		List<Object> restResponse = restTemplate
 				.exchange(url, HttpMethod.POST, request, new ParameterizedTypeReference<List<Object>>() {
@@ -104,14 +116,14 @@ public class BaseRestService {
 		for (Object item : restResponse) {
 			result.add(outputListClass.cast(item));
 		}
-		
+
 		headers = null;
 		url = null;
 		request = null;
 		restResponse = null;
 		input = null;
 		outputListClass = null;
-		
+
 		return result;
 	}
 
@@ -120,9 +132,8 @@ public class BaseRestService {
 	 * 
 	 * @return Object of type T
 	 */
-	public <T extends Object> T getWithoutInputForSingleOutput(String url, Class<T> outputClass) {
-		MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
-		headers.set("content-type", "application/json");
+	public <T extends Object> T getWithoutInputForSingleOutput(Map<String, String> inputHeaders, String url, Class<T> outputClass) {
+		MultiValueMap<String, String> headers = initializeHeaders(inputHeaders);
 		HttpEntity<?> request = new HttpEntity<>(headers);
 
 		Object restResponse = restTemplate.exchange(url, HttpMethod.GET, request, outputClass).getBody();
@@ -133,17 +144,16 @@ public class BaseRestService {
 
 		return outputClass.cast(restResponse);
 	}
-	
+
 	/**
 	 * makes GET REST call for no input and gets list output
 	 * 
 	 * @return List of objects of type T
 	 */
-	public <T> List<T> getWithoutInputForListOutput(String url, Class<T> outputListClass) {
-		MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
-		headers.set("content-type", "application/json");
+	public <T> List<T> getWithoutInputForListOutput(Map<String, String> inputHeaders, String url, Class<T> outputListClass) {
+		MultiValueMap<String, String> headers = initializeHeaders(inputHeaders);
 		HttpEntity<?> request = new HttpEntity<>(headers);
-		
+
 		List<Object> restResponse = restTemplate
 				.exchange(url, HttpMethod.GET, request, new ParameterizedTypeReference<List<Object>>() {
 				}).getBody();
@@ -152,24 +162,23 @@ public class BaseRestService {
 		for (Object item : restResponse) {
 			result.add(outputListClass.cast(item));
 		}
-		
+
 		headers = null;
 		url = null;
 		request = null;
 		restResponse = null;
 		outputListClass = null;
-		
+
 		return result;
 	}
-	
+
 	/**
 	 * makes GET REST call for object input and gets single object output
 	 * 
 	 * @return Object of type T
 	 */
-	public <T extends Object> T getWithSingleInputForSingleOutput(Object input, String url, Class<T> outputClass) {
-		MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
-		headers.set("content-type", "application/json");
+	public <T extends Object> T getWithSingleInputForSingleOutput(Map<String, String> inputHeaders, Object input, String url, Class<T> outputClass) {
+		MultiValueMap<String, String> headers = initializeHeaders(inputHeaders);
 		HttpEntity<?> request = new HttpEntity<>(input, headers);
 
 		Object restResponse = restTemplate.exchange(url, HttpMethod.GET, request, outputClass).getBody();
@@ -181,15 +190,14 @@ public class BaseRestService {
 
 		return outputClass.cast(restResponse);
 	}
-	
+
 	/**
 	 * makes GET REST call for object input and gets list output
 	 * 
 	 * @return List of objects of type T
 	 */
-	public <T> List<T> getWtihSingleInputForListOutput(Object input, String url, Class<T> outputListClass) {
-		MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
-		headers.set("content-type", "application/json");
+	public <T> List<T> getWtihSingleInputForListOutput(Map<String, String> inputHeaders, Object input, String url, Class<T> outputListClass) {
+		MultiValueMap<String, String> headers = initializeHeaders(inputHeaders);
 		HttpEntity<?> request = new HttpEntity<>(input, headers);
 		List<Object> restResponse = restTemplate
 				.exchange(url, HttpMethod.GET, request, new ParameterizedTypeReference<List<Object>>() {
@@ -199,14 +207,14 @@ public class BaseRestService {
 		for (Object item : restResponse) {
 			result.add(outputListClass.cast(item));
 		}
-		
+
 		headers = null;
 		url = null;
 		request = null;
 		restResponse = null;
 		outputListClass = null;
 		input = null;
-		
+
 		return result;
 	}
 }

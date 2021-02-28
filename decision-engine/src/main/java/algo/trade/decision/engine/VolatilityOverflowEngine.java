@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import algo.trade.bot.beans.TradeVO;
 import algo.trade.constants.SystemConstants;
 import algo.trade.decision.beans.BollingerBandValues;
+import algo.trade.decision.beans.DecisionResponse;
 import algo.trade.decision.beans.EntryDecisionQuery;
 import algo.trade.decision.beans.SecondaryActionDecisionQuery;
 import algo.trade.decision.client.DecisionEngine;
@@ -32,33 +33,37 @@ public class VolatilityOverflowEngine extends DecisionEngine {
 	}
 
 	@Override
-	public Boolean shouldBotOpenLongPosition(EntryDecisionQuery request) {
-		Boolean result = false;
+	public DecisionResponse shouldBotOpenLongPosition(EntryDecisionQuery request) {
+		DecisionResponse result = constructEmptyResponse();
 
 		List<Kline> quarterHourlyData = request.getMarketData()
-				.get(marketConfigurationConstants.get("ENTRY_MONITORING_KLINE_1"));
+				.get(botConfigurationConstants.get("ENTRY_MONITORING_KLINE_1"));
 		List<Kline> hourlyData = request.getMarketData()
-				.get(marketConfigurationConstants.get("ENTRY_MONITORING_KLINE_2"));
+				.get(botConfigurationConstants.get("ENTRY_MONITORING_KLINE_2"));
 
 		BollingerBandValues hourlyBands = this.calculateBollingerBandsForInput(hourlyData);
 		BollingerBandValues quarterHourlyBands = this.calculateBollingerBandsForInput(quarterHourlyData);
 
-		Kline currentPrice = quarterHourlyData.get(quarterHourlyData.size() - 1);
+		BigDecimal currentPrice = quarterHourlyData.get(quarterHourlyData.size() - 1).getClose();
+		BigDecimal lastHourLowerBB = hourlyBands.getLowerBand()[hourlyBands.getLowerBand().length - 1];
+		BigDecimal lastHourMiddleBB = hourlyBands.getMiddleBand()[hourlyBands.getMiddleBand().length - 1];
+		BigDecimal lastQuarterHourLowerBB = quarterHourlyBands.getLowerBand()[quarterHourlyBands.getLowerBand().length
+				- 1];
 
 		int localRsi = getRsi(hourlyData);
 
-		Boolean intermediateResult = (currentPrice.getOpen()
-				.subtract(hourlyBands.getMiddleBand()[hourlyBands.getMiddleBand().length - 1]))
-						.compareTo(BigDecimal.ZERO) < 0;
+		// hyperlocal volatility excess
+		Boolean intermediateResult = currentPrice.compareTo(lastQuarterHourLowerBB) < 0;
 
-		intermediateResult = intermediateResult
-				&& (currentPrice.getOpen().subtract(hourlyBands.getLowerBand()[hourlyBands.getLowerBand().length - 1]))
-						.compareTo(BigDecimal.ZERO) > 0;
+		// hourly volatility measure
+		intermediateResult = intermediateResult && currentPrice.compareTo(lastHourLowerBB) > 0;
+		intermediateResult = intermediateResult && currentPrice.compareTo(lastHourMiddleBB) < 0;
 
 		if ((localRsi <= ((Integer) engineConfigurationConstants.get("LOWER_RSI_THRESHOLD"))) && intermediateResult
-				&& currentPrice.getOpen().compareTo(
+				&& currentPrice.compareTo(
 						quarterHourlyBands.getLowerBand()[quarterHourlyBands.getLowerBand().length - 1]) < 0) {
-			result = true;
+			result.setShouldBotActOnItem(true);
+
 		}
 		return result;
 	}
@@ -118,21 +123,23 @@ public class VolatilityOverflowEngine extends DecisionEngine {
 	}
 
 	@Override
-	public Boolean shouldBotExtendLongPosition(SecondaryActionDecisionQuery request) {
+	public DecisionResponse shouldBotExtendLongPosition(SecondaryActionDecisionQuery request) {
+		DecisionResponse result = constructEmptyResponse();
 		BigDecimal firstEntryPrice = request.getCurrentOutstandingTrades().get(0).getBuyPrice();
 		BigDecimal currentPrice = request.getMarketData()
 				.get(engineConfigurationConstants.get("EXTENSION_MONITORING_KLINE"))
 				.get(request.getMarketData().get("EXTENSION_MONITORING_KLINE").size() - 1).getClose();
 
-		Boolean result = (firstEntryPrice.multiply(
+		result.setShouldBotActOnItem((firstEntryPrice.multiply(
 				(BigDecimal.ONE.subtract((BigDecimal) engineConfigurationConstants.get("LONG_EXTENSION_THRESHOLD")))))
-						.compareTo(currentPrice) > 0;
+						.compareTo(currentPrice) > 0);
 
 		return result;
 	}
 
 	@Override
-	public Boolean shouldBotPerformLongStopLossAction(SecondaryActionDecisionQuery request) {
+	public DecisionResponse shouldBotPerformLongStopLossAction(SecondaryActionDecisionQuery request) {
+		DecisionResponse result = constructEmptyResponse();
 		try {
 			BigDecimal currentPrice = request.getMarketData()
 					.get(engineConfigurationConstants.get("EXTENSION_MONITORING_KLINE")).get(request.getMarketData()
@@ -144,18 +151,19 @@ public class VolatilityOverflowEngine extends DecisionEngine {
 
 			BigDecimal unrealizedLoss = this.getTotalReturnFromTradesInList(currentPosition);
 
-			return unrealizedLoss.compareTo(request.getBot().getCurrentMoney()
-					.multiply((BigDecimal) engineConfigurationConstants.get("LONG_STOP_LOSS_THRESHOLD"))) < 0;
+			result.setShouldBotActOnItem(unrealizedLoss.compareTo(request.getBot().getCurrentMoney()
+					.multiply((BigDecimal) engineConfigurationConstants.get("LONG_STOP_LOSS_THRESHOLD"))) < 0);
 		} catch (PositionOpenException e) {
 			LOG.error("One or more positions do not have buy prices defined. Please check the request for item "
 					+ request.getItemInfo());
+			result.setShouldBotActOnItem(false);
 		}
-		return false;
+		return result;
 	}
 
 	@Override
-	public Boolean shouldBotOpenShortPosition(EntryDecisionQuery request) {
-		Boolean result = false;
+	public DecisionResponse shouldBotOpenShortPosition(EntryDecisionQuery request) {
+		DecisionResponse result = constructEmptyResponse();
 
 		// List<Kline> hourlyData =
 		// request.getMarketData().get(getBotConfigurationConstants().get("ENTRY_MONITORING_WINDOW").toString());
@@ -177,15 +185,17 @@ public class VolatilityOverflowEngine extends DecisionEngine {
 	}
 
 	@Override
-	public Boolean shouldBotExtendShortPosition(SecondaryActionDecisionQuery request) {
+	public DecisionResponse shouldBotExtendShortPosition(SecondaryActionDecisionQuery request) {
 		// never sell more for this trade
-		return false;
+		DecisionResponse result = constructEmptyResponse();
+		return result;
 	}
 
 	@Override
-	public Boolean shouldBotPerformShortStopLossAction(SecondaryActionDecisionQuery request) {
-		// TODO Auto-generated method stub
-		return false;
+	public DecisionResponse shouldBotPerformShortStopLossAction(SecondaryActionDecisionQuery request) {
+		// no need for short stop loss because this position is never opened
+		DecisionResponse result = constructEmptyResponse();
+		return result;
 	}
 
 	@Override
@@ -228,18 +238,16 @@ public class VolatilityOverflowEngine extends DecisionEngine {
 
 	@Override
 	protected void initializeBotConfigurationConstants() {
-		botConfigurationConstants.put("INITIAL_TRADE_MARGIN", 0.05d);
-		botConfigurationConstants.put("EXTENSION_TRADE_MARGIN", 0.1d);
-		botConfigurationConstants.put("MINIMUM_ITEM_TRADE_HISTORY", 60);
-	}
+		botConfigurationConstants.put(SystemConstants.INITIAL_TRADE_MARGIN_KEY, 0.05d);
+		botConfigurationConstants.put(SystemConstants.EXTENSION_TRADE_MARGIN_KEY, 0.1d);
+		botConfigurationConstants.put(SystemConstants.MINIMUM_ITEM_TRADE_HISTORY_DAYS_KEY, 60);
+		
+		botConfigurationConstants.put(SystemConstants.ENTRY_MONITORING_KLINE + "_1", "15m");
+		botConfigurationConstants.put(SystemConstants.ENTRY_MONITORING_KLINE + "_2", "1h");
+		botConfigurationConstants.put(SystemConstants.ENTRY_MONITORING_WINDOW_HOURS_KEY, 100);
 
-	@Override
-	protected void initializeMarketConfigurationConstants() {
-		marketConfigurationConstants.put("ENTRY_MONITORING_KLINE_1", "15m");
-		marketConfigurationConstants.put("ENTRY_MONITORING_KLINE_2", "1h");
-		marketConfigurationConstants.put("ENTRY_MONITORING_WINDOW", 100);
-		marketConfigurationConstants.put("EXTENSION_MONITORING_WINDOW", 10);
-		marketConfigurationConstants.put("EXTENSION_MONITORING_KLINE", "15m");
+		botConfigurationConstants.put(SystemConstants.EXTENSION_MONITORING_KLINE_KEY, "15m");
+		botConfigurationConstants.put(SystemConstants.EXTENSION_MONITORING_WINDOW_HOURS_KEY, 10);
 	}
 
 	@Override

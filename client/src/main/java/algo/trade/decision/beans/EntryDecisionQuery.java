@@ -6,7 +6,7 @@ import java.util.Map;
 
 import algo.trade.bot.BotDefinition;
 import algo.trade.market.beans.Kline;
-import algo.trade.market.beans.RelevantItemInfoVO;
+import algo.trade.market.beans.ItemInfo;
 /**
  * Input data for initiation decisions
  * @author Abhinav Shetty
@@ -22,7 +22,7 @@ public class EntryDecisionQuery implements Serializable {
 	/**
 	 * info about item
 	 */
-	private RelevantItemInfoVO itemInfo;
+	private ItemInfo itemInfo;
 	
 	/**
 	 * market klines for item
@@ -42,10 +42,10 @@ public class EntryDecisionQuery implements Serializable {
 	public void setMarketData(Map<String, List<Kline>> marketData) {
 		this.marketData = marketData;
 	}
-	public RelevantItemInfoVO getItemInfo() {
+	public ItemInfo getItemInfo() {
 		return itemInfo;
 	}
-	public void setItemInfo(RelevantItemInfoVO itemInfo) {
+	public void setItemInfo(ItemInfo itemInfo) {
 		this.itemInfo = itemInfo;
 	}
 	public long getCurrentTime() {

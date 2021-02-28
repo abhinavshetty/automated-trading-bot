@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import algo.trade.decision.beans.DecisionResponse;
 import algo.trade.decision.beans.EntryDecisionQuery;
 import algo.trade.decision.beans.SecondaryActionDecisionQuery;
 import algo.trade.decision.engine.DecisionEngineFactory;
@@ -25,82 +26,83 @@ public class EngineController extends BaseService {
 	private DecisionEngineFactory decisionEngineFactory;
 
 	@PostMapping(path = "/shouldBotOpenLongPosition", consumes = "application/json", produces = "application/json")
-	public Boolean shouldBotOpenLongPosition(@RequestBody EntryDecisionQuery request) {
-		LOG.debug("Received request to decide if long buy cycle can be executed : " + request);
+	public DecisionResponse shouldBotOpenLongPosition(@RequestBody EntryDecisionQuery request) {
+		DecisionResponse result;
 		try {
-			Boolean result = decisionEngineFactory.getDecisionEngine(request.getBot().getStrategyName())
+			result = decisionEngineFactory.getDecisionEngine(request.getBot().getStrategyName())
 					.shouldBotOpenLongPosition(request);
-			return result;
 		} catch (StrategyDoesNotExistException e) {
 			LOG.error("Could not find the decision engine requested " + request.getBot().getStrategyName());
+			result = constructEmptyResponse();
 		}
-		return false;
+		return result;
 	}
 
 	@PostMapping(path = "/shouldBotExtendLongPosition", consumes = "application/json", produces = "application/json")
-	public Boolean shouldBotExtendLongPosition(@RequestBody SecondaryActionDecisionQuery request) {
-		LOG.debug("Received request to decide if corrective action is needed in long buy cycle : " + request);
+	public DecisionResponse shouldBotExtendLongPosition(@RequestBody SecondaryActionDecisionQuery request) {
+		DecisionResponse result;
 		try {
-			Boolean result = decisionEngineFactory.getDecisionEngine(request.getBot().getStrategyName())
+			result = decisionEngineFactory.getDecisionEngine(request.getBot().getStrategyName())
 					.shouldBotExtendLongPosition(request);
-			return result;
 		} catch (StrategyDoesNotExistException e) {
 			LOG.error("Could not find the decision engine requested " + request.getBot().getStrategyName());
+			result = constructEmptyResponse();
 		}
-		return false;
+		return result;
 	}
 
 	@PostMapping(path = "/shouldBotPerformLongStopLossAction", consumes = "application/json", produces = "application/json")
-	public Boolean shouldBotPerformLongStopLossAction(@RequestBody SecondaryActionDecisionQuery request) {
-		LOG.debug("Received request to decide if partial exit can be made in long buy cycle : " + request);
+	public DecisionResponse shouldBotPerformLongStopLossAction(@RequestBody SecondaryActionDecisionQuery request) {
+		DecisionResponse result;
 		try {
-			Boolean result = decisionEngineFactory.getDecisionEngine(request.getBot().getStrategyName())
+			result = decisionEngineFactory.getDecisionEngine(request.getBot().getStrategyName())
 					.shouldBotPerformLongStopLossAction(request);
-			return result;
 		} catch (StrategyDoesNotExistException e) {
 			LOG.error("Could not find the decision engine requested " + request.getBot().getStrategyName());
+			result = constructEmptyResponse();
 		}
-		return false;
+		return result;
 	}
 
 	@PostMapping(path = "/shouldBotOpenShortPosition", consumes = "application/json", produces = "application/json")
-	public Boolean shouldBotOpenShortPosition(@RequestBody EntryDecisionQuery request) {
-		LOG.debug("Received request to decide if short sell cycle can be executed : " + request);
+	public DecisionResponse shouldBotOpenShortPosition(@RequestBody EntryDecisionQuery request) {
+		DecisionResponse result;
 		try {
-			Boolean result = decisionEngineFactory.getDecisionEngine(request.getBot().getStrategyName())
+			result = decisionEngineFactory.getDecisionEngine(request.getBot().getStrategyName())
 					.shouldBotOpenShortPosition(request);
-			return result;
 		} catch (StrategyDoesNotExistException e) {
 			LOG.error("Could not find the decision engine requested " + request.getBot().getStrategyName());
+			result = constructEmptyResponse();
 		}
 
-		return false;
+		return result;
 	}
 
 	@PostMapping(path = "/shouldBotExtendShortPosition", consumes = "application/json", produces = "application/json")
-	public Boolean shouldBotExtendShortPosition(@RequestBody SecondaryActionDecisionQuery request) {
-		LOG.debug("Received request to decide if price corrective action is needed in long buy cycle : " + request);
+	public DecisionResponse shouldBotExtendShortPosition(@RequestBody SecondaryActionDecisionQuery request) {
+		DecisionResponse result;
 		try {
-			Boolean result = decisionEngineFactory.getDecisionEngine(request.getBot().getStrategyName())
+			result = decisionEngineFactory.getDecisionEngine(request.getBot().getStrategyName())
 					.shouldBotExtendShortPosition(request);
-			return result;
 		} catch (StrategyDoesNotExistException e) {
 			LOG.error("Could not find the decision engine requested " + request.getBot().getStrategyName());
+			result = constructEmptyResponse();
 		}
-		return false;
+		return result;
 	}
 
 	@PostMapping(path = "/shouldBotPerformShortStopLossAction", consumes = "application/json", produces = "application/json")
-	public Boolean shouldBotPerformShortStopLossAction(@RequestBody SecondaryActionDecisionQuery request) {
-		LOG.debug("Received request to decide if partial exit can be made in short sell cycle : " + request);
+	public DecisionResponse shouldBotPerformShortStopLossAction(@RequestBody SecondaryActionDecisionQuery request) {
+		DecisionResponse result;
 		try {
-			Boolean result = decisionEngineFactory.getDecisionEngine(request.getBot().getStrategyName())
+			result = decisionEngineFactory.getDecisionEngine(request.getBot().getStrategyName())
 					.shouldBotPerformShortStopLossAction(request);
 			return result;
 		} catch (StrategyDoesNotExistException e) {
 			LOG.error("Could not find the decision engine requested " + request.getBot().getStrategyName());
+			result = constructEmptyResponse();
 		}
-		return false;
+		return result;
 	}
 
 	@PostMapping(path = "/getExitSellPrice", consumes = "application/json", produces = "application/json")
@@ -128,7 +130,7 @@ public class EngineController extends BaseService {
 		}
 		return BigDecimal.ZERO;
 	}
-	
+
 	@PostMapping(path = "/getStopLossSellPrice", consumes = "application/json", produces = "application/json")
 	public BigDecimal getStopLossSellPrice(@RequestBody SecondaryActionDecisionQuery request) {
 		LOG.debug("Received request to get exit sell price in long buy cycle : " + request);
@@ -153,5 +155,24 @@ public class EngineController extends BaseService {
 			LOG.error("Could not find the decision engine requested " + request.getBot().getStrategyName());
 		}
 		return BigDecimal.ZERO;
+	}
+	
+	@PostMapping(path = "/getBotConfigurationConstants", consumes = "application/json", produces = "application/json")
+	public DecisionResponse getBotConfigurationConstants(@RequestBody EntryDecisionQuery request) {
+		DecisionResponse result = constructEmptyResponse();
+		try {
+			result.setConfigParameters(decisionEngineFactory.getDecisionEngine(request.getBot().getStrategyName())
+					.getBotConfigurationConstants());
+			return result;
+		} catch (StrategyDoesNotExistException e) {
+			LOG.error("Could not find the decision engine requested " + request.getBot().getStrategyName());
+		}
+		return result;
+	}
+
+	private DecisionResponse constructEmptyResponse() {
+		DecisionResponse result = new DecisionResponse();
+		result.setShouldBotActOnItem(false);
+		return result;
 	}
 }

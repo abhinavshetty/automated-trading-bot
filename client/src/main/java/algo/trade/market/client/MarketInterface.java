@@ -7,11 +7,11 @@ import algo.trade.bot.BotDefinition;
 import algo.trade.bot.beans.TradeVO;
 import algo.trade.market.beans.HistoricalTradeVO;
 import algo.trade.market.beans.Kline;
-import algo.trade.market.beans.RelevantItemInfoVO;
+import algo.trade.market.beans.ItemInfo;
 import algo.trade.market.beans.TradePostDao;
 
 /**
- * Generic market interface defining methods to interact with a given market
+ * Generic market interface defining methods to interact with a market
  * 
  * @author Abhinav Shetty
  *
@@ -39,7 +39,7 @@ public interface MarketInterface {
 	 * 
 	 * @return
 	 */
-	public Map<String, RelevantItemInfoVO> getAllItemsData(BotDefinition bot);
+	public Map<String, ItemInfo> getAllItemsData(BotDefinition bot);
 
 	/**
 	 * Gets kline information for given inputs from market: interval is kline time
@@ -51,7 +51,7 @@ public interface MarketInterface {
 	 * @param currentTime in unix milliseconds
 	 * @return
 	 */
-	public List<Kline> getHistoricData(String symbol, String interval, int timePeriod, long currentTime);
+	public List<Kline> getHistoricKlines(String symbol, String interval, int timePeriod, long currentTime);
 
 	/**
 	 * Post a trade and return the response from request.
@@ -60,7 +60,7 @@ public interface MarketInterface {
 	 * @param headerKey
 	 * @return TradePostResponseDao
 	 */
-	public TradeVO postTrade(TradePostDao leg, RelevantItemInfoVO tickerInfo, BotDefinition bot);
+	public TradeVO postTrade(TradePostDao leg, ItemInfo tickerInfo, BotDefinition bot);
 
 	/**
 	 * Check if trade is filled for user
