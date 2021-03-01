@@ -35,6 +35,21 @@ public class SecondaryActionDecisionQuery implements Serializable {
 	
 	private BotDefinition bot;
 
+	public SecondaryActionDecisionQuery() {
+		super();
+		// TODO Auto-generated constructor stub
+	}
+
+	public SecondaryActionDecisionQuery(Map<String, List<Kline>> marketData, long currentTime,
+			List<TradeVO> currentOutstandingTrades, ItemInfo itemInfo, BotDefinition bot) {
+		super();
+		this.marketData = marketData;
+		this.currentTime = currentTime;
+		this.currentOutstandingTrades = currentOutstandingTrades;
+		this.itemInfo = itemInfo;
+		this.bot = bot;
+	}
+
 	public Map<String, List<Kline>> getMarketData() {
 		return marketData;
 	}

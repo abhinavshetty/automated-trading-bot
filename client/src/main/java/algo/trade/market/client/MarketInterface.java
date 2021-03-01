@@ -1,13 +1,14 @@
 package algo.trade.market.client;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
 import algo.trade.bot.BotDefinition;
 import algo.trade.bot.beans.TradeVO;
 import algo.trade.market.beans.HistoricalTradeVO;
-import algo.trade.market.beans.Kline;
 import algo.trade.market.beans.ItemInfo;
+import algo.trade.market.beans.Kline;
 import algo.trade.market.beans.TradePostDao;
 
 /**
@@ -55,12 +56,15 @@ public interface MarketInterface {
 
 	/**
 	 * Post a trade and return the response from request.
-	 * 
-	 * @param leg
-	 * @param headerKey
-	 * @return TradePostResponseDao
+	 * @param price
+	 * @param quantity
+	 * @param position
+	 * @param type
+	 * @param tickerInfo
+	 * @param bot
+	 * @return
 	 */
-	public TradeVO postTrade(TradePostDao leg, ItemInfo tickerInfo, BotDefinition bot);
+	public TradeVO postTrade(BigDecimal price, BigDecimal quantity, String position, String type, ItemInfo tickerInfo, BotDefinition bot);
 
 	/**
 	 * Check if trade is filled for user
@@ -69,7 +73,7 @@ public interface MarketInterface {
 	 * @param trade
 	 * @return status is filled or not.
 	 */
-	public boolean isTradeFilled(BotDefinition bot, List<TradeVO> trade, long serverTime);
+	public boolean isTradeFilled(BotDefinition bot, TradeVO trade, long serverTime);
 
 	/**
 	 * gets server time when the bot is running
@@ -94,7 +98,7 @@ public interface MarketInterface {
 	 * @param bot
 	 * @return
 	 */
-	public TradeVO postSimTrade(TradePostDao leg, BotDefinition bot);
+	public TradeVO postSimTrade(BigDecimal price, BigDecimal quantity, String position, String type, BotDefinition bot);
 
 	/**
 	 * Simulates checking a trade on the market

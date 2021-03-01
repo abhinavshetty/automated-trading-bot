@@ -22,12 +22,15 @@ import algo.trade.errors.PositionOpenException;
 public class BasePositionService extends BaseService {
 
 	/**
-	 * gets the weighted average side price for the position
-	 * enter side as BUY/SELL to get specific side.
+	 * gets the weighted average side price for the position enter side as BUY/SELL
+	 * to get specific side.
+	 * 
 	 * @return
-	 * @throws PositionOpenException if unable to complete the operation
+	 * @throws PositionOpenException
+	 *             if unable to complete the operation
 	 */
-	public final BigDecimal getWeightedAverageSidePriceForPosition(List<TradeVO> trades, String side) throws PositionOpenException {
+	public final BigDecimal getWeightedAverageSidePriceForPosition(List<TradeVO> trades, String side)
+			throws PositionOpenException {
 		BigDecimal totalFiat = BigDecimal.ZERO;
 		BigDecimal totalAssetQty = BigDecimal.ZERO;
 		BigDecimal result = BigDecimal.ZERO;
@@ -55,6 +58,7 @@ public class BasePositionService extends BaseService {
 
 	/**
 	 * gets the total fiat at risk in the position
+	 * 
 	 * @return
 	 */
 	public final BigDecimal getTotalFiatInTrade(List<TradeVO> trades) {
@@ -75,7 +79,8 @@ public class BasePositionService extends BaseService {
 	 * 
 	 * @param trades
 	 * @return
-	 * @throws PositionOpenException if unable to perform the operation
+	 * @throws PositionOpenException
+	 *             if unable to perform the operation
 	 */
 	public BigDecimal getTotalReturnFromTradesInList(List<TradeVO> trades) throws PositionOpenException {
 		Map<String, List<TradeVO>> distinctCurrencies = new ConcurrentHashMap<String, List<TradeVO>>();
@@ -90,8 +95,10 @@ public class BasePositionService extends BaseService {
 		BigDecimal currencyReturn = BigDecimal.ZERO;
 
 		for (String orderSet : distinctCurrencies.keySet()) {
-			BigDecimal buyPriceForSet = this.getWeightedAverageSidePriceForPosition(distinctCurrencies.get(orderSet), SystemConstants.BUY_SIDE);
-			BigDecimal sellPriceForSet = this.getWeightedAverageSidePriceForPosition(distinctCurrencies.get(orderSet), SystemConstants.SELL_SIDE);
+			BigDecimal buyPriceForSet = this.getWeightedAverageSidePriceForPosition(distinctCurrencies.get(orderSet),
+					SystemConstants.BUY_SIDE);
+			BigDecimal sellPriceForSet = this.getWeightedAverageSidePriceForPosition(distinctCurrencies.get(orderSet),
+					SystemConstants.SELL_SIDE);
 			BigDecimal buyQuantity = this.getTotalFiatInTrade(distinctCurrencies.get(orderSet));
 
 			currencyReturn = currencyReturn.add((sellPriceForSet.subtract(buyPriceForSet)).divide(buyPriceForSet))
@@ -99,5 +106,19 @@ public class BasePositionService extends BaseService {
 		}
 
 		return currencyReturn;
+	}
+
+	/**
+	 * returns total quantity of item in a position
+	 * @param trades
+	 * @return
+	 */
+	public BigDecimal getTotalQuantityInPosition(List<TradeVO> trades) {
+		BigDecimal result = BigDecimal.ZERO;
+
+		for (TradeVO trade : trades) {
+			result = result.add(trade.getQuantity());
+		}
+		return result;
 	}
 }

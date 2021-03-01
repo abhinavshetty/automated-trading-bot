@@ -242,8 +242,8 @@ public class VolatilityOverflowEngine extends DecisionEngine {
 		botConfigurationConstants.put(SystemConstants.EXTENSION_TRADE_MARGIN_KEY, 0.1d);
 		botConfigurationConstants.put(SystemConstants.MINIMUM_ITEM_TRADE_HISTORY_DAYS_KEY, 60);
 		
-		botConfigurationConstants.put(SystemConstants.ENTRY_MONITORING_KLINE + "_1", "15m");
-		botConfigurationConstants.put(SystemConstants.ENTRY_MONITORING_KLINE + "_2", "1h");
+		botConfigurationConstants.put(SystemConstants.ENTRY_MONITORING_KLINE_KEY + "_1", "15m");
+		botConfigurationConstants.put(SystemConstants.ENTRY_MONITORING_KLINE_KEY + "_2", "1h");
 		botConfigurationConstants.put(SystemConstants.ENTRY_MONITORING_WINDOW_HOURS_KEY, 100);
 
 		botConfigurationConstants.put(SystemConstants.EXTENSION_MONITORING_KLINE_KEY, "15m");

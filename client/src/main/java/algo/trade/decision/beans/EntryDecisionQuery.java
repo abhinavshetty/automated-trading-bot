@@ -36,6 +36,19 @@ public class EntryDecisionQuery implements Serializable {
 	
 	private BotDefinition bot;
 	
+	public EntryDecisionQuery() {
+		super();
+	}
+	
+	public EntryDecisionQuery(ItemInfo itemInfo, Map<String, List<Kline>> marketData, long currentTime,
+			BotDefinition bot) {
+		super();
+		this.itemInfo = itemInfo;
+		this.marketData = marketData;
+		this.currentTime = currentTime;
+		this.bot = bot;
+	}
+
 	public Map<String, List<Kline>> getMarketData() {
 		return marketData;
 	}
