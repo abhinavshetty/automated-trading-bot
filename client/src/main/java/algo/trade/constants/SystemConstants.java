@@ -44,6 +44,7 @@ public class SystemConstants {
 	public static final String SHORT_EXTEND_ACTION = "SHORT_EXTEND";
 	public static final String SHORT_STOP_LOSS_ACTION = "SHORT_STOP_LOSS";
 	public static final String MAX_PORTFOLIO_SIZE_KEY = "MAX_PORTFOLIO_SIZE";
+	public static final String COMPARISON_INDEX_KEY = "COMPARISON_INDEX";
 	
 	// time periods
 	public static final String ONE_DAY = "1d";
@@ -56,4 +57,6 @@ public class SystemConstants {
 	public static final String QUARTER_HOUR = "15m";
 	public static final String FIVE_MINUTES = "5m";
 	public static final String ONE_MINUTE = "1m";
+	
+	
 }

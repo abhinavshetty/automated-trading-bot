@@ -38,30 +38,14 @@ public class VolatilityOverflowEngine extends DecisionEngine {
 
 		List<Kline> quarterHourlyData = request.getMarketData()
 				.get(botConfigurationConstants.get("ENTRY_MONITORING_KLINE_1"));
-		List<Kline> hourlyData = request.getMarketData()
-				.get(botConfigurationConstants.get("ENTRY_MONITORING_KLINE_2"));
-
-		BollingerBandValues hourlyBands = this.calculateBollingerBandsForInput(hourlyData);
-		BollingerBandValues quarterHourlyBands = this.calculateBollingerBandsForInput(quarterHourlyData);
-
+		List<Kline> hourlyData = request.getMarketData().get(botConfigurationConstants.get("ENTRY_MONITORING_KLINE_2"));
 		BigDecimal currentPrice = quarterHourlyData.get(quarterHourlyData.size() - 1).getClose();
-		BigDecimal lastHourLowerBB = hourlyBands.getLowerBand()[hourlyBands.getLowerBand().length - 1];
-		BigDecimal lastHourMiddleBB = hourlyBands.getMiddleBand()[hourlyBands.getMiddleBand().length - 1];
-		BigDecimal lastQuarterHourLowerBB = quarterHourlyBands.getLowerBand()[quarterHourlyBands.getLowerBand().length
-				- 1];
-
+		
+		BollingerBandValues quarterHourlyBands = this.calculateBollingerBandsForInput(quarterHourlyData);
 		int localRsi = getRsi(hourlyData);
 
-		// hyperlocal volatility excess
-		Boolean intermediateResult = currentPrice.compareTo(lastQuarterHourLowerBB) < 0;
-
-		// hourly volatility measure
-		intermediateResult = intermediateResult && currentPrice.compareTo(lastHourLowerBB) > 0;
-		intermediateResult = intermediateResult && currentPrice.compareTo(lastHourMiddleBB) < 0;
-
-		if ((localRsi <= ((Integer) engineConfigurationConstants.get("LOWER_RSI_THRESHOLD"))) && intermediateResult
-				&& currentPrice.compareTo(
-						quarterHourlyBands.getLowerBand()[quarterHourlyBands.getLowerBand().length - 1]) < 0) {
+		if ((localRsi <= ((Integer) engineConfigurationConstants.get("LOWER_RSI_THRESHOLD"))) && currentPrice
+				.compareTo(quarterHourlyBands.getLowerBand()[quarterHourlyBands.getLowerBand().length - 1]) < 0) {
 			result.setShouldBotActOnItem(true);
 
 		}
@@ -241,7 +225,7 @@ public class VolatilityOverflowEngine extends DecisionEngine {
 		botConfigurationConstants.put(SystemConstants.INITIAL_TRADE_MARGIN_KEY, 0.05d);
 		botConfigurationConstants.put(SystemConstants.EXTENSION_TRADE_MARGIN_KEY, 0.1d);
 		botConfigurationConstants.put(SystemConstants.MINIMUM_ITEM_TRADE_HISTORY_DAYS_KEY, 60);
-		
+
 		botConfigurationConstants.put(SystemConstants.ENTRY_MONITORING_KLINE_KEY + "_1", "15m");
 		botConfigurationConstants.put(SystemConstants.ENTRY_MONITORING_KLINE_KEY + "_2", "1h");
 		botConfigurationConstants.put(SystemConstants.ENTRY_MONITORING_WINDOW_HOURS_KEY, 100);
