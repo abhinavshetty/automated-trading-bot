@@ -43,8 +43,17 @@ public class SystemConstants {
 	public static final String SHORT_ENTRY_ACTION = "SHORT_ENTRY";
 	public static final String SHORT_EXTEND_ACTION = "SHORT_EXTEND";
 	public static final String SHORT_STOP_LOSS_ACTION = "SHORT_STOP_LOSS";
-	
-	public static final String ONE_DAY = "1d";
-
 	public static final String MAX_PORTFOLIO_SIZE_KEY = "MAX_PORTFOLIO_SIZE";
+	
+	// time periods
+	public static final String ONE_DAY = "1d";
+	public static final String TWELVE_HOURS = "12h";
+	public static final String SIX_HOURS = "6h";
+	public static final String FOUR_HOURS = "4h";
+	public static final String TWO_HOURS = "2h";
+	public static final String ONE_HOUR = "1h";
+	public static final String HALF_HOUR = "30m";
+	public static final String QUARTER_HOUR = "15m";
+	public static final String FIVE_MINUTES = "5m";
+	public static final String ONE_MINUTE = "1m";
 }

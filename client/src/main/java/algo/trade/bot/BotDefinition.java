@@ -11,7 +11,7 @@ import java.util.Date;
 public class BotDefinition {
 	
 	private int botId;
-	private String lifecycleName;
+	private String lifeCycleName;
 	private String strategyName;
 	private String marketName;
 	private String botName;
@@ -46,11 +46,11 @@ public class BotDefinition {
 	public void setInitialInvestment(BigDecimal initialInvestment) {
 		this.initialInvestment = initialInvestment;
 	}
-	public String getLifecycleName() {
-		return lifecycleName;
+	public String getLifeCycleName() {
+		return lifeCycleName;
 	}
-	public void setLifecycleName(String lifecycleName) {
-		this.lifecycleName = lifecycleName;
+	public void setLifeCycleName(String lifeCycleName) {
+		this.lifeCycleName = lifeCycleName;
 	}
 	public Date getStartTime() {
 		return startTime;
@@ -73,7 +73,7 @@ public class BotDefinition {
 	
 	@Override
 	public String toString() {
-		return "BotInstance [lifecycleName=" + lifecycleName
+		return "BotInstance [lifecycleName=" + lifeCycleName
 				+ ", strategyName=" + strategyName 
 				+ ", marketName=" + marketName + ", initialInvestment=" + initialInvestment + ", baseCurrency="
 				+ fiatCurrency + "]";
@@ -102,7 +102,7 @@ public class BotDefinition {
 		result = prime * result + ((currentMoney == null) ? 0 : currentMoney.hashCode());
 		result = prime * result + ((fiatCurrency == null) ? 0 : fiatCurrency.hashCode());
 		result = prime * result + ((initialInvestment == null) ? 0 : initialInvestment.hashCode());
-		result = prime * result + ((lifecycleName == null) ? 0 : lifecycleName.hashCode());
+		result = prime * result + ((lifeCycleName == null) ? 0 : lifeCycleName.hashCode());
 		result = prime * result + ((marketName == null) ? 0 : marketName.hashCode());
 		result = prime * result + ((startTime == null) ? 0 : startTime.hashCode());
 		result = prime * result + ((status == null) ? 0 : status.hashCode());

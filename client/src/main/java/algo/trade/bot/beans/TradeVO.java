@@ -18,16 +18,18 @@ public class TradeVO implements Comparable<TradeVO>, Serializable{
 	private static final long serialVersionUID = 3847377202664970222L;
 	
 	private int id;
-	private int marketId;
-	private int tradeTypeId;
-	private int strategyId;
-	private int lifecycleId;
-	private String tradeCurrency;
+	private String marketName;
+	private String positionType;
+	private String strategyName;
+	private String lifeCycleName;
+	private String botName;
+	private String tradeItem;
 	private BigDecimal buyPrice;
 	private Timestamp buyTime;
 	private BigDecimal sellPrice;
 	private Timestamp sellTime;
 	private BigDecimal quantity;
+	private int tradeSide;
 
 	private String buyClientOrderId;
 	private Long buyOrderId;
@@ -52,7 +54,7 @@ public class TradeVO implements Comparable<TradeVO>, Serializable{
 			Long sellOrderId, BigDecimal quantity) {
 		super();
 		this.id = id;
-		this.tradeCurrency = tradeCurrency;
+		this.tradeItem = tradeCurrency;
 		this.buyPrice = buyPrice;
 		this.buyClientOrderId = buyClientOrderId;
 		this.buyOrderId = buyOrderId;
@@ -71,12 +73,12 @@ public class TradeVO implements Comparable<TradeVO>, Serializable{
 		super();
 	}
 
-	public String getTradeCurrency() {
-		return tradeCurrency;
+	public String getTradeItem() {
+		return tradeItem;
 	}
 
-	public void setTradeCurrency(String tradeCurrency) {
-		this.tradeCurrency = tradeCurrency;
+	public void setTradeItem(String tradeItem) {
+		this.tradeItem = tradeItem;
 	}
 
 	public BigDecimal getBuyPrice() {
@@ -174,10 +176,74 @@ public class TradeVO implements Comparable<TradeVO>, Serializable{
         return this.id-id;
 	}
 
-	@Override
-	public String toString() {
-		return "TradeVO [tradeCurrency=" + tradeCurrency + ", market=" + marketId + ", buyPrice=" + buyPrice + ", buyTime=" + buyTime
-				+ ", sellPrice=" + sellPrice + ", sellTime=" + sellTime + ", quantity=" + quantity + "]";
+	/**
+	 * @return the marketName
+	 */
+	public String getMarketName() {
+		return marketName;
+	}
+
+	/**
+	 * @param marketName the marketName to set
+	 */
+	public void setMarketName(String marketName) {
+		this.marketName = marketName;
+	}
+
+	/**
+	 * @return the positionType
+	 */
+	public String getPositionType() {
+		return positionType;
+	}
+
+	/**
+	 * @param positionType the positionType to set
+	 */
+	public void setPositionType(String positionType) {
+		this.positionType = positionType;
+	}
+
+	/**
+	 * @return the strategyName
+	 */
+	public String getStrategyName() {
+		return strategyName;
+	}
+
+	/**
+	 * @param strategyName the strategyName to set
+	 */
+	public void setStrategyName(String strategyName) {
+		this.strategyName = strategyName;
+	}
+
+	/**
+	 * @return the lifeCycleName
+	 */
+	public String getLifeCycleName() {
+		return lifeCycleName;
+	}
+
+	/**
+	 * @param lifeCycleName the lifeCycleName to set
+	 */
+	public void setLifeCycleName(String lifeCycleName) {
+		this.lifeCycleName = lifeCycleName;
+	}
+
+	/**
+	 * @return the botName
+	 */
+	public String getBotName() {
+		return botName;
+	}
+
+	/**
+	 * @param botName the botName to set
+	 */
+	public void setBotName(String botName) {
+		this.botName = botName;
 	}
 
 	/* (non-Javadoc)
@@ -187,17 +253,22 @@ public class TradeVO implements Comparable<TradeVO>, Serializable{
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime * result + ((botName == null) ? 0 : botName.hashCode());
 		result = prime * result + ((buyClientOrderId == null) ? 0 : buyClientOrderId.hashCode());
 		result = prime * result + ((buyOrderId == null) ? 0 : buyOrderId.hashCode());
 		result = prime * result + ((buyPrice == null) ? 0 : buyPrice.hashCode());
 		result = prime * result + ((buyTime == null) ? 0 : buyTime.hashCode());
 		result = prime * result + id;
+		result = prime * result + ((lifeCycleName == null) ? 0 : lifeCycleName.hashCode());
+		result = prime * result + ((marketName == null) ? 0 : marketName.hashCode());
+		result = prime * result + ((positionType == null) ? 0 : positionType.hashCode());
 		result = prime * result + ((quantity == null) ? 0 : quantity.hashCode());
 		result = prime * result + ((sellClientOrderId == null) ? 0 : sellClientOrderId.hashCode());
 		result = prime * result + ((sellOrderId == null) ? 0 : sellOrderId.hashCode());
 		result = prime * result + ((sellPrice == null) ? 0 : sellPrice.hashCode());
 		result = prime * result + ((sellTime == null) ? 0 : sellTime.hashCode());
-		result = prime * result + ((tradeCurrency == null) ? 0 : tradeCurrency.hashCode());
+		result = prime * result + ((strategyName == null) ? 0 : strategyName.hashCode());
+		result = prime * result + ((tradeItem == null) ? 0 : tradeItem.hashCode());
 		return result;
 	}
 
@@ -206,98 +277,139 @@ public class TradeVO implements Comparable<TradeVO>, Serializable{
 	 */
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj)
+		if (this == obj) {
 			return true;
-		if (obj == null)
+		}
+		if (obj == null) {
 			return false;
-		if (getClass() != obj.getClass())
+		}
+		if (!(obj instanceof TradeVO)) {
 			return false;
+		}
 		TradeVO other = (TradeVO) obj;
+		if (botName == null) {
+			if (other.botName != null) {
+				return false;
+			}
+		} else if (!botName.equals(other.botName)) {
+			return false;
+		}
 		if (buyClientOrderId == null) {
-			if (other.buyClientOrderId != null)
+			if (other.buyClientOrderId != null) {
 				return false;
-		} else if (!buyClientOrderId.equalsIgnoreCase(other.buyClientOrderId))
+			}
+		} else if (!buyClientOrderId.equals(other.buyClientOrderId)) {
 			return false;
+		}
 		if (buyOrderId == null) {
-			if (other.buyOrderId != null)
+			if (other.buyOrderId != null) {
 				return false;
-		} else if (buyOrderId.longValue() != (other.getBuyOrderId().longValue()))
+			}
+		} else if (!buyOrderId.equals(other.buyOrderId)) {
 			return false;
+		}
 		if (buyPrice == null) {
-			if (other.buyPrice != null)
+			if (other.buyPrice != null) {
 				return false;
-		} else if (buyPrice.doubleValue() != other.getBuyPrice().doubleValue())
+			}
+		} else if (!buyPrice.equals(other.buyPrice)) {
 			return false;
+		}
 		if (buyTime == null) {
-			if (other.buyTime != null)
+			if (other.buyTime != null) {
 				return false;
-		} else if (!buyTime.equals(other.buyTime))
+			}
+		} else if (!buyTime.equals(other.buyTime)) {
 			return false;
-		if (id != other.id)
+		}
+		if (id != other.id) {
 			return false;
+		}
+		if (lifeCycleName == null) {
+			if (other.lifeCycleName != null) {
+				return false;
+			}
+		} else if (!lifeCycleName.equals(other.lifeCycleName)) {
+			return false;
+		}
+		if (marketName == null) {
+			if (other.marketName != null) {
+				return false;
+			}
+		} else if (!marketName.equals(other.marketName)) {
+			return false;
+		}
+		if (positionType == null) {
+			if (other.positionType != null) {
+				return false;
+			}
+		} else if (!positionType.equals(other.positionType)) {
+			return false;
+		}
 		if (quantity == null) {
-			if (other.quantity != null)
+			if (other.quantity != null) {
 				return false;
-		} else if (!quantity.equals(other.quantity))
+			}
+		} else if (!quantity.equals(other.quantity)) {
 			return false;
+		}
 		if (sellClientOrderId == null) {
-			if (other.sellClientOrderId != null)
+			if (other.sellClientOrderId != null) {
 				return false;
-		} else if (!sellClientOrderId.equalsIgnoreCase(other.getSellClientOrderId()))
+			}
+		} else if (!sellClientOrderId.equals(other.sellClientOrderId)) {
 			return false;
+		}
 		if (sellOrderId == null) {
-			if (other.sellOrderId != null)
+			if (other.sellOrderId != null) {
 				return false;
-		} else if (sellOrderId.longValue() != (other.getSellOrderId().longValue()))
+			}
+		} else if (!sellOrderId.equals(other.sellOrderId)) {
 			return false;
+		}
 		if (sellPrice == null) {
-			if (other.sellPrice != null)
+			if (other.sellPrice != null) {
 				return false;
-		} else if (sellPrice.doubleValue() != (other.getSellPrice().doubleValue()))
+			}
+		} else if (!sellPrice.equals(other.sellPrice)) {
 			return false;
+		}
 		if (sellTime == null) {
-			if (other.sellTime != null)
+			if (other.sellTime != null) {
 				return false;
-		} else if (!sellTime.equals(other.sellTime))
+			}
+		} else if (!sellTime.equals(other.sellTime)) {
 			return false;
-		if (tradeCurrency == null) {
-			if (other.tradeCurrency != null)
+		}
+		if (strategyName == null) {
+			if (other.strategyName != null) {
 				return false;
-		} else if (!tradeCurrency.equals(other.tradeCurrency))
+			}
+		} else if (!strategyName.equals(other.strategyName)) {
 			return false;
+		}
+		if (tradeItem == null) {
+			if (other.tradeItem != null) {
+				return false;
+			}
+		} else if (!tradeItem.equals(other.tradeItem)) {
+			return false;
+		}
 		return true;
 	}
 
-	public int getMarketId() {
-		return marketId;
+	/**
+	 * @return the tradeSide
+	 */
+	public int getTradeSide() {
+		return tradeSide;
 	}
 
-	public void setMarketId(int marketId) {
-		this.marketId = marketId;
-	}
-
-	public int getTradeTypeId() {
-		return tradeTypeId;
-	}
-
-	public void setTradeTypeId(int tradeTypeId) {
-		this.tradeTypeId = tradeTypeId;
-	}
-
-	public int getStrategyId() {
-		return strategyId;
-	}
-
-	public void setStrategyId(int strategyId) {
-		this.strategyId = strategyId;
-	}
-
-	public int getLifecycleId() {
-		return lifecycleId;
-	}
-
-	public void setLifecycleId(int lifecycleId) {
-		this.lifecycleId = lifecycleId;
+	/**
+	 * @param tradeSide the tradeSide to set
+	 */
+	public void setTradeSide(int tradeSide) {
+		this.tradeSide = tradeSide;
 	}
 
 }

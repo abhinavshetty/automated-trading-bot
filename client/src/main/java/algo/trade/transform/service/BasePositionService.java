@@ -65,7 +65,7 @@ public class BasePositionService extends BaseService {
 		BigDecimal totalFiat = BigDecimal.ZERO;
 		if (trades != null) {
 			for (TradeVO trade : trades) {
-				totalFiat = totalFiat.add(((trade.getTradeTypeId() == SystemConstants.LONG_TRADE ? trade.getBuyPrice()
+				totalFiat = totalFiat.add(((trade.getTradeSide() == SystemConstants.LONG_TRADE ? trade.getBuyPrice()
 						: trade.getSellPrice()).multiply(trade.getQuantity())));
 			}
 		}
