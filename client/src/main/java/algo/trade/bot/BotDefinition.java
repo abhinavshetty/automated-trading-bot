@@ -22,6 +22,27 @@ public class BotDefinition {
 	private Date startTime;
 	private String status;
 	
+	
+	
+	public BotDefinition() {
+		super();
+		// TODO Auto-generated constructor stub
+	}
+
+	public BotDefinition(String lifeCycleName, String strategyName, String marketName, String botName,
+			BigDecimal initialInvestment, BigDecimal currentMoney, String fiatCurrency, Date startTime, String status) {
+		super();
+		this.lifeCycleName = lifeCycleName;
+		this.strategyName = strategyName;
+		this.marketName = marketName;
+		this.botName = botName;
+		this.initialInvestment = initialInvestment;
+		this.currentMoney = currentMoney;
+		this.fiatCurrency = fiatCurrency;
+		this.startTime = startTime;
+		this.status = status;
+	}
+	
 	public int getBotId() {
 		return botId;
 	}

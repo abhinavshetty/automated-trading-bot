@@ -25,7 +25,7 @@ import algo.trade.market.client.MarketInterface;
 @Scope(value = ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class QuarterHourlyLookerBot extends Bot {
 
-	private static final String NAME = "QUARTER_HOURLY_MONITOR";
+	private static final String NAME = "QHL";
 
 	@Override
 	public Boolean setupBot() throws MarketDoesNotExistException {

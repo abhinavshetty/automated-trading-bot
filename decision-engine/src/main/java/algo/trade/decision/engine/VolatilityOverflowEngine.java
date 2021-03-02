@@ -3,6 +3,7 @@ package algo.trade.decision.engine;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.stereotype.Service;
 
@@ -43,11 +44,16 @@ public class VolatilityOverflowEngine extends DecisionEngine {
 		
 		BollingerBandValues quarterHourlyBands = this.calculateBollingerBandsForInput(quarterHourlyData);
 		int localRsi = getRsi(hourlyData);
+		
+		BigDecimal comparisonIndex = currentPrice.subtract(quarterHourlyBands.getLowerBand()[quarterHourlyBands.getLowerBand().length - 1]);
+		comparisonIndex = comparisonIndex.divide(hourlyData.get(hourlyData.size() - 1).getOpen());
+		comparisonIndex = comparisonIndex.abs();
 
 		if ((localRsi <= ((Integer) engineConfigurationConstants.get("LOWER_RSI_THRESHOLD"))) && currentPrice
 				.compareTo(quarterHourlyBands.getLowerBand()[quarterHourlyBands.getLowerBand().length - 1]) < 0) {
 			result.setShouldBotActOnItem(true);
-
+			result.setDecisionParameters(new ConcurrentHashMap<String, BigDecimal>());
+			result.getDecisionParameters().put(SystemConstants.COMPARISON_INDEX_KEY, comparisonIndex);
 		}
 		return result;
 	}
@@ -111,8 +117,8 @@ public class VolatilityOverflowEngine extends DecisionEngine {
 		DecisionResponse result = constructEmptyResponse();
 		BigDecimal firstEntryPrice = request.getCurrentOutstandingTrades().get(0).getBuyPrice();
 		BigDecimal currentPrice = request.getMarketData()
-				.get(engineConfigurationConstants.get("EXTENSION_MONITORING_KLINE"))
-				.get(request.getMarketData().get("EXTENSION_MONITORING_KLINE").size() - 1).getClose();
+				.get(engineConfigurationConstants.get(SystemConstants.EXTENSION_MONITORING_KLINE_KEY))
+				.get(request.getMarketData().get(SystemConstants.EXTENSION_MONITORING_KLINE_KEY).size() - 1).getClose();
 
 		result.setShouldBotActOnItem((firstEntryPrice.multiply(
 				(BigDecimal.ONE.subtract((BigDecimal) engineConfigurationConstants.get("LONG_EXTENSION_THRESHOLD")))))
@@ -126,8 +132,8 @@ public class VolatilityOverflowEngine extends DecisionEngine {
 		DecisionResponse result = constructEmptyResponse();
 		try {
 			BigDecimal currentPrice = request.getMarketData()
-					.get(engineConfigurationConstants.get("EXTENSION_MONITORING_KLINE")).get(request.getMarketData()
-							.get(engineConfigurationConstants.get("EXTENSION_MONITORING_KLINE")).size() - 1)
+					.get(engineConfigurationConstants.get(SystemConstants.EXTENSION_MONITORING_KLINE_KEY)).get(request.getMarketData()
+							.get(engineConfigurationConstants.get(SystemConstants.EXTENSION_MONITORING_KLINE_KEY)).size() - 1)
 					.getClose();
 
 			List<TradeVO> currentPosition = request.getCurrentOutstandingTrades();
@@ -247,7 +253,7 @@ public class VolatilityOverflowEngine extends DecisionEngine {
 
 	@Override
 	public BigDecimal getStopLossSellPrice(SecondaryActionDecisionQuery request) {
-		// triggers market sell on triggered stop loss
+		// triggers market sell on triggered stop loss, never used.
 		BigDecimal result = BigDecimal.ZERO;
 		return result;
 	}

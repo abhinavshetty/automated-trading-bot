@@ -1,5 +1,6 @@
-package erudite.labs.automation.bot;
+package algo.trade.bot.warehouse;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -12,8 +13,6 @@ import java.util.concurrent.Future;
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -26,7 +25,6 @@ import algo.trade.factory.LifecycleFactory;
 import algo.trade.factory.MarketFactory;
 import algo.trade.market.beans.ItemInfo;
 import algo.trade.transform.service.BaseService;
-import erudite.labs.automation.client.GenericDaoClient;
 
 /**
  * Bot factory. 1. initializes resources 2. starts all bots on single threads.
@@ -69,26 +67,13 @@ public class BotWarehouse extends BaseService{
 	@PostConstruct
 	public final void initializeBots() {
 		// initialize all user trade and profile resources
-		GenericDaoClient botClient = daoFactory.getDaoClient(null);
-
-		List<BotDefinition> allBotList = botClient.getTradingBotInstances();
 		
-		allBots.clear();
-		botPool.clear();
-		botTrades.clear();
+		List<BotDefinition> bots = new ArrayList<BotDefinition>();
+		BotDefinition firstBot = new BotDefinition("CA", "VOE", "BINANCE_FUTURES", "QHL", new BigDecimal(300), new BigDecimal(300), "USDT", null, SystemConstants.RUNNING);
+		bots.add(firstBot);
 		
-		for (BotDefinition bot : allBotList) {
-			if (bot.getInitialInvestment().doubleValue() != 0) {
-				BotDefinition temp = (bot);
-				temp.setCurrentMoney(temp.getInitialInvestment());
-				allBots.put(temp.getBotId(),
-						new BotTemplate(bot, marketFactory, botTrades, lifecycleFactory, relevantTickerData));
-				botPool.put(temp.getBotId(), Executors.newFixedThreadPool(SystemConstants.OVERALL_POOL_SIZE));
-				List<TradeVO> Trades = daoFactory.getDaoClient(SystemConstants.LONG_TRADE).getBotTrades(temp, 0);
-				// System.out.println("Bot id : " + temp.getBotId());
-				botTrades.put(temp.getBotId(), Trades);
-			}
-
+		for (BotDefinition bot : bots) {
+			
 		}
 
 		LOG.info("All trading bots initialized! ");
