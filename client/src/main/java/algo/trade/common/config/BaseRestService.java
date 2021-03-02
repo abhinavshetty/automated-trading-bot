@@ -30,7 +30,7 @@ public class BaseRestService {
 		result.set("content-type", "application/json");
 		
 		// add custom headers
-		if (result != null) {
+		if (inputHeaders != null) {
 			for (String key : inputHeaders.keySet()) {
 				result.set(key, inputHeaders.get(key));
 			}

@@ -4,12 +4,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
-import org.springframework.beans.factory.annotation.Autowired;
-
 import algo.trade.bot.beans.TradeVO;
-import algo.trade.decision.client.EngineClient;
+import algo.trade.decision.client.DecisionEngineClient;
+import algo.trade.errors.DataException;
 import algo.trade.errors.LifeCycleDoesNotExistException;
 import algo.trade.errors.MarketDoesNotExistException;
+import algo.trade.errors.PositionOpenException;
 import algo.trade.factory.LifecycleFactory;
 import algo.trade.factory.MarketFactory;
 import algo.trade.market.beans.ItemInfo;
@@ -22,14 +22,11 @@ import algo.trade.transform.service.BaseService;
  */
 public abstract class Bot extends BaseService implements Callable<Boolean>{
 	
-	@Autowired
 	protected MarketFactory marketFactory;
 
-	@Autowired
 	protected LifecycleFactory lifecycleFactory;
 	
-	@Autowired
-	protected EngineClient engine;
+	protected DecisionEngineClient engine;
 	
 	protected Map<String, ItemInfo> botMarket;
 	
@@ -38,7 +35,28 @@ public abstract class Bot extends BaseService implements Callable<Boolean>{
 	protected List<TradeVO> outstandingBotPositions;
 	
 	protected BotDefinition botDefinition;
-	
+
+	public Bot() {
+		super();
+		LOGGER();
+		// TODO Auto-generated constructor stub
+	}
+
+	/**
+	 * instantiates the bot with the necessary resources.
+	 * @param marketFactory
+	 * @param lifecycleFactory
+	 * @param engine
+	 * @param botDefinition
+	 */
+	public void instantiateBot(MarketFactory marketFactory, LifecycleFactory lifecycleFactory, DecisionEngineClient engine,
+			BotDefinition botDefinition) {
+		this.marketFactory = marketFactory;
+		this.lifecycleFactory = lifecycleFactory;
+		this.engine = engine;
+		this.botDefinition = botDefinition;
+	}
+
 	/**
 	 * initializes the bot.
 	 * Includes the markets and open positions of operational bots
@@ -51,8 +69,10 @@ public abstract class Bot extends BaseService implements Callable<Boolean>{
 	 * Starts the bot activity
 	 * @throws LifeCycleDoesNotExistException 
 	 * @throws MarketDoesNotExistException 
+	 * @throws PositionOpenException 
+	 * @throws DataException 
 	 */
-	public abstract void startBot() throws LifeCycleDoesNotExistException, MarketDoesNotExistException;
+	public abstract void startBot() throws LifeCycleDoesNotExistException, MarketDoesNotExistException, DataException, PositionOpenException;
 	
 	/**
 	 * Stops the bot activity
@@ -72,10 +92,12 @@ public abstract class Bot extends BaseService implements Callable<Boolean>{
 	/**
 	 * @throws MarketDoesNotExistException 
 	 * @throws LifeCycleDoesNotExistException 
+	 * @throws PositionOpenException 
+	 * @throws DataException 
 	 * 
 	 */
 	@Override
-	public Boolean call() throws MarketDoesNotExistException, LifeCycleDoesNotExistException {
+	public Boolean call() throws MarketDoesNotExistException, LifeCycleDoesNotExistException, DataException, PositionOpenException {
 		setupBot();
 		startBot();
 		return true;
@@ -89,7 +111,7 @@ public abstract class Bot extends BaseService implements Callable<Boolean>{
 		this.outstandingBotPositions = outstandingBotPositions;
 	}
 
-	protected void setBotDefinition(BotDefinition botDefinition) {
+	public void setBotDefinition(BotDefinition botDefinition) {
 		this.botDefinition = botDefinition;
 	}
 

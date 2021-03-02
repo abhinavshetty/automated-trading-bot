@@ -24,7 +24,7 @@ import algo.trade.transform.service.BaseService;
  * @author Abhinav Shetty
  */
 @Service
-public class EngineClient extends BaseService {
+public class DecisionEngineClient extends BaseService {
 
 	@Autowired
 	private BaseRestService restService;

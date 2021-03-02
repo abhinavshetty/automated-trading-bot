@@ -2,6 +2,7 @@ package algo.trade.lifecycle.service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +15,7 @@ import algo.trade.constants.SystemConstants;
 import algo.trade.decision.beans.DecisionResponse;
 import algo.trade.errors.DataException;
 import algo.trade.errors.MarketDoesNotExistException;
+import algo.trade.errors.PositionOpenException;
 import algo.trade.errors.ZeroQuantityOrderedException;
 import algo.trade.lifecycle.client.LifeCycle;
 import algo.trade.lifecycle.client.MarketDataWrapper;
@@ -39,7 +41,8 @@ public class CostAveragedLifeCycle extends LifeCycle {
 
 	@Override
 	public DecisionResponse performMonitorOperationForItem(ItemInfo itemInfo, BotDefinition bot,
-			List<TradeVO> openPositions, Map<String, Object> config) throws MarketDoesNotExistException {
+			List<TradeVO> openPositions, Map<String, Object> config)
+			throws MarketDoesNotExistException, DataException, PositionOpenException {
 		// monitors an item for decision engine
 		DecisionResponse result = null;
 		List<TradeVO> openPositionsForItem = openPositions;
@@ -70,52 +73,76 @@ public class CostAveragedLifeCycle extends LifeCycle {
 			// there are open positions for this item. Evaluate stop-loss or extension
 			// possibilities
 			if (openPositionsForItem.get(0).getTradeSide() == SystemConstants.LONG_TRADE) {
-				// open long position: check for stop loss followed by extension
+				// open long position: check for close followed by stop loss followed by
+				// extension
 
-				Map<String, List<Kline>> correctionData = dataWrapper.getLongCorrectionMarketData(itemInfo, bot,
-						serverTime, config);
-
-				DecisionResponse stopLossLongCondition = engineClient.shouldBotPerformLongStopLossAction(itemInfo,
-						correctionData, bot, openPositionsForItem, serverTime);
-
-				if (stopLossLongCondition.isShouldBotActOnItem()) {
-					// this item needs to be stop-lossed
-					result = stopLossLongCondition;
-				} else {
-					// perform extension action
-					DecisionResponse extendLongCondition = engineClient.shouldBotExtendLongPosition(itemInfo,
-							correctionData, bot, openPositionsForItem, serverTime);
-					if (extendLongCondition.isShouldBotActOnItem()) {
-						// this item needs to be stop-lossed
-						result = extendLongCondition;
+				if (marketClient.isTradeFilled(bot, openPositionsForItem.get(openPositionsForItem.size() - 1),
+						serverTime)) {
+					LOG.info("The long position in " + itemInfo.getSymbol() + " was closed successfully at a profit.");
+					for (TradeVO trade : openPositionsForItem) {
+						trade.setBuyTime(new Timestamp(serverTime));
 					}
-					extendLongCondition = null;
+					LOG.info("Trade profit : " + this.getTotalReturnFromTradesInList(openPositionsForItem));
+					openPositions.removeIf(item -> item.getTradeItem().equalsIgnoreCase(itemInfo.getSymbol()));
+				} else {
+					Map<String, List<Kline>> correctionData = dataWrapper.getLongCorrectionMarketData(itemInfo, bot,
+							serverTime, config);
+
+					DecisionResponse stopLossLongCondition = engineClient.shouldBotPerformLongStopLossAction(itemInfo,
+							correctionData, bot, openPositionsForItem, serverTime);
+
+					if (stopLossLongCondition.isShouldBotActOnItem()) {
+						// this item needs to be stop-lossed
+						result = stopLossLongCondition;
+					} else {
+						// perform extension action
+						DecisionResponse extendLongCondition = engineClient.shouldBotExtendLongPosition(itemInfo,
+								correctionData, bot, openPositionsForItem, serverTime);
+						if (extendLongCondition.isShouldBotActOnItem()) {
+							// this item needs to be stop-lossed
+							result = extendLongCondition;
+						}
+						extendLongCondition = null;
+					}
+					stopLossLongCondition = null;
+					correctionData = null;
 				}
-				stopLossLongCondition = null;
-				correctionData = null;
+
 			} else {
-				// open short position: check for stop loss followed by extension
-				Map<String, List<Kline>> correctionData = dataWrapper.getShortCorrectionMarketData(itemInfo, bot,
-						serverTime, config);
-
-				DecisionResponse stopLossShortCondition = engineClient.shouldBotPerformShortStopLossAction(itemInfo,
-						correctionData, bot, openPositionsForItem, serverTime);
-
-				if (stopLossShortCondition.isShouldBotActOnItem()) {
-					// this item needs to be stop-lossed
-					result = stopLossShortCondition;
-				} else {
-					// perform extension action
-					DecisionResponse extendShortCondition = engineClient.shouldBotExtendShortPosition(itemInfo,
-							correctionData, bot, openPositionsForItem, serverTime);
-					if (extendShortCondition.isShouldBotActOnItem()) {
-						// this item needs to be stop-lossed
-						result = extendShortCondition;
+				// open short position: check for close check for stop loss followed by
+				// extension
+				if (marketClient.isTradeFilled(bot, openPositionsForItem.get(openPositionsForItem.size() - 1),
+						serverTime)) {
+					LOG.info("The long position in " + itemInfo.getSymbol() + " was closed successfully at a profit.");
+					for (TradeVO trade : openPositionsForItem) {
+						trade.setBuyTime(new Timestamp(serverTime));
 					}
-					extendShortCondition = null;
+					LOG.info("Trade profit : " + this.getTotalReturnFromTradesInList(openPositionsForItem));
+					openPositions.removeIf(item -> item.getTradeItem().equalsIgnoreCase(itemInfo.getSymbol()));
+				} else {
+					Map<String, List<Kline>> correctionData = dataWrapper.getShortCorrectionMarketData(itemInfo, bot,
+							serverTime, config);
+
+					DecisionResponse stopLossShortCondition = engineClient.shouldBotPerformShortStopLossAction(itemInfo,
+							correctionData, bot, openPositionsForItem, serverTime);
+
+					if (stopLossShortCondition.isShouldBotActOnItem()) {
+						// this item needs to be stop-lossed
+						result = stopLossShortCondition;
+					} else {
+						// perform extension action
+						DecisionResponse extendShortCondition = engineClient.shouldBotExtendShortPosition(itemInfo,
+								correctionData, bot, openPositionsForItem, serverTime);
+						if (extendShortCondition.isShouldBotActOnItem()) {
+							// this item needs to be stop-lossed
+							result = extendShortCondition;
+						}
+						extendShortCondition = null;
+					}
+					stopLossShortCondition = null;
+					correctionData = null;
 				}
-				stopLossShortCondition = null;
-				correctionData = null;
+
 			}
 
 		}
@@ -143,7 +170,7 @@ public class CostAveragedLifeCycle extends LifeCycle {
 		TradeVO entryResult = null;
 		BigDecimal currentPrice = null;
 		MarketInterface marketClient = marketFactory.getClient(bot);
-		
+
 		for (String klineSet : marketData.keySet()) {
 			currentPrice = marketData.get(klineSet).get(marketData.get(klineSet).size() - 1).getClose();
 			break;
@@ -151,11 +178,13 @@ public class CostAveragedLifeCycle extends LifeCycle {
 		BigDecimal valueAtRisk = bot.getCurrentMoney()
 				.multiply(new BigDecimal(config.get(SystemConstants.INITIAL_TRADE_MARGIN_KEY).toString()));
 		BigDecimal quantity = valueAtRisk.divide(currentPrice);
-		quantity = quantity.setScale(itemInfo.getQuantityPrecision(), RoundingMode.FLOOR);
+		
 		if (quantity.compareTo(BigDecimal.ZERO) > 0) {
 			// non zero quantity post rounding. perform entry action.
 			entryResult = marketClient.postTrade(currentPrice, quantity, SystemConstants.BUY_SIDE,
 					SystemConstants.MARKET_ORDER, itemInfo, bot);
+			entryResult.setTradeSide(SystemConstants.LONG_TRADE);
+
 			List<TradeVO> entryPosition = new ArrayList<TradeVO>();
 			entryPosition.add(entryResult);
 
@@ -167,7 +196,7 @@ public class CostAveragedLifeCycle extends LifeCycle {
 
 			entryResult.setSellClientOrderId(exitTrade.getSellClientOrderId());
 			entryResult.setSellOrderId(exitTrade.getSellOrderId());
-			entryResult.setSellPrice(exitPrice);
+			entryResult.setSellPrice(exitTrade.getSellPrice());
 
 			entryPosition = null;
 			exitPrice = null;
@@ -194,7 +223,7 @@ public class CostAveragedLifeCycle extends LifeCycle {
 		TradeVO entryResult = null;
 		BigDecimal currentPrice = null;
 		MarketInterface marketClient = marketFactory.getClient(bot);
-		
+
 		for (String klineSet : marketData.keySet()) {
 			currentPrice = marketData.get(klineSet).get(marketData.get(klineSet).size() - 1).getClose();
 			break;
@@ -202,23 +231,23 @@ public class CostAveragedLifeCycle extends LifeCycle {
 		BigDecimal valueAtRisk = bot.getCurrentMoney()
 				.multiply(new BigDecimal(config.get(SystemConstants.INITIAL_TRADE_MARGIN_KEY).toString()));
 		BigDecimal quantity = valueAtRisk.divide(currentPrice);
-		quantity = quantity.setScale(itemInfo.getQuantityPrecision(), RoundingMode.FLOOR);
 		if (quantity.compareTo(BigDecimal.ZERO) > 0) {
 			// non zero quantity post rounding. perform entry action.
 			entryResult = marketClient.postTrade(currentPrice, quantity, SystemConstants.SELL_SIDE,
 					SystemConstants.MARKET_ORDER, itemInfo, bot);
+			entryResult.setTradeSide(SystemConstants.SHORT_TRADE);
+
 			List<TradeVO> entryPosition = new ArrayList<TradeVO>();
 			entryPosition.add(entryResult);
 
 			BigDecimal exitPrice = engineClient.getExitBuyPrice(itemInfo, marketData, bot, entryPosition, currentTime);
-			exitPrice = exitPrice.setScale(itemInfo.getPricePrecision(), RoundingMode.CEILING);
 
 			TradeVO exitTrade = marketClient.postTrade(exitPrice, quantity, SystemConstants.BUY_SIDE,
 					SystemConstants.LIMIT_ORDER, itemInfo, bot);
 
 			entryResult.setBuyClientOrderId(exitTrade.getBuyClientOrderId());
 			entryResult.setBuyOrderId(exitTrade.getBuyOrderId());
-			entryResult.setBuyPrice(exitPrice);
+			entryResult.setBuyPrice(exitTrade.getBuyPrice());
 
 			entryPosition = null;
 			exitPrice = null;
@@ -245,8 +274,7 @@ public class CostAveragedLifeCycle extends LifeCycle {
 		TradeVO extensionResult = null;
 		BigDecimal currentPrice = null;
 		MarketInterface marketClient = marketFactory.getClient(bot);
-		
-		
+
 		for (String klineSet : marketData.keySet()) {
 			currentPrice = marketData.get(klineSet).get(marketData.get(klineSet).size() - 1).getClose();
 			break;
@@ -255,12 +283,13 @@ public class CostAveragedLifeCycle extends LifeCycle {
 		BigDecimal valueAtRisk = bot.getCurrentMoney()
 				.multiply(new BigDecimal(config.get(SystemConstants.EXTENSION_TRADE_MARGIN_KEY).toString()));
 		BigDecimal quantity = valueAtRisk.divide(currentPrice);
-		quantity = quantity.setScale(itemInfo.getQuantityPrecision(), RoundingMode.FLOOR);
 
 		if (quantity.compareTo(BigDecimal.ZERO) > 0) {
 			// non zero quantity post rounding. perform entry action.
 			extensionResult = marketClient.postTrade(currentPrice, quantity, SystemConstants.BUY_SIDE,
 					SystemConstants.MARKET_ORDER, itemInfo, bot);
+			extensionResult.setTradeSide(SystemConstants.LONG_TRADE);
+
 			TradeVO openSellOrder = currentPosition.get(currentPosition.size() - 1);
 			currentPosition.add(extensionResult);
 
@@ -268,9 +297,8 @@ public class CostAveragedLifeCycle extends LifeCycle {
 
 			BigDecimal exitPrice = engineClient.getExitSellPrice(itemInfo, marketData, bot, currentPosition,
 					currentTime);
-			exitPrice = exitPrice.setScale(itemInfo.getPricePrecision(), RoundingMode.CEILING);
 			BigDecimal exitQuantity = this.getTotalQuantityInPosition(currentPosition);
-			
+
 			TradeVO exitTrade = marketClient.postTrade(exitPrice, exitQuantity, SystemConstants.SELL_SIDE,
 					SystemConstants.LIMIT_ORDER, itemInfo, bot);
 
@@ -303,7 +331,6 @@ public class CostAveragedLifeCycle extends LifeCycle {
 		TradeVO extensionResult = null;
 		BigDecimal currentPrice = null;
 		MarketInterface marketClient = marketFactory.getClient(bot);
-		
 
 		for (String klineSet : marketData.keySet()) {
 			currentPrice = marketData.get(klineSet).get(marketData.get(klineSet).size() - 1).getClose();
@@ -328,7 +355,7 @@ public class CostAveragedLifeCycle extends LifeCycle {
 					currentTime);
 			exitPrice = exitPrice.setScale(itemInfo.getPricePrecision(), RoundingMode.CEILING);
 			BigDecimal exitQuantity = this.getTotalQuantityInPosition(currentPosition);
-			
+
 			TradeVO exitTrade = marketClient.postTrade(exitPrice, exitQuantity, SystemConstants.BUY_SIDE,
 					SystemConstants.LIMIT_ORDER, itemInfo, bot);
 
@@ -370,8 +397,8 @@ public class CostAveragedLifeCycle extends LifeCycle {
 			break;
 		}
 
-		stopLossResult = marketClient.postTrade(currentPrice, totalQuantityInPosition,
-				SystemConstants.SELL_SIDE, SystemConstants.MARKET_ORDER, itemInfo, bot);
+		stopLossResult = marketClient.postTrade(currentPrice, totalQuantityInPosition, SystemConstants.SELL_SIDE,
+				SystemConstants.MARKET_ORDER, itemInfo, bot);
 
 		totalQuantityInPosition = null;
 		currentPrice = null;
@@ -388,7 +415,7 @@ public class CostAveragedLifeCycle extends LifeCycle {
 		TradeVO stopLossResult = null;
 		BigDecimal currentPrice = null;
 		MarketInterface marketClient = marketFactory.getClient(bot);
-		
+
 		TradeVO openSellOrder = currentPosition.get(currentPosition.size() - 1);
 		marketClient.cancelTrade(bot, openSellOrder, currentTime);
 
@@ -398,8 +425,8 @@ public class CostAveragedLifeCycle extends LifeCycle {
 			break;
 		}
 
-		stopLossResult = marketClient.postTrade(currentPrice, totalQuantityInPosition,
-				SystemConstants.BUY_SIDE, SystemConstants.MARKET_ORDER, itemInfo, bot);
+		stopLossResult = marketClient.postTrade(currentPrice, totalQuantityInPosition, SystemConstants.BUY_SIDE,
+				SystemConstants.MARKET_ORDER, itemInfo, bot);
 
 		totalQuantityInPosition = null;
 		currentPrice = null;

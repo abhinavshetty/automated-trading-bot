@@ -8,9 +8,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import algo.trade.bot.BotDefinition;
 import algo.trade.bot.beans.TradeVO;
 import algo.trade.decision.beans.DecisionResponse;
-import algo.trade.decision.client.EngineClient;
+import algo.trade.decision.client.DecisionEngineClient;
 import algo.trade.errors.DataException;
 import algo.trade.errors.MarketDoesNotExistException;
+import algo.trade.errors.PositionOpenException;
 import algo.trade.errors.ZeroQuantityOrderedException;
 import algo.trade.factory.MarketDataWrapperFactory;
 import algo.trade.factory.MarketFactory;
@@ -33,7 +34,7 @@ public abstract class LifeCycle extends BasePositionService {
 	protected MarketDataWrapperFactory dataFactory;
 
 	@Autowired
-	protected EngineClient engineClient;
+	protected DecisionEngineClient engineClient;
 
 	/**
 	 * returns unique identifier for implementation
@@ -49,9 +50,11 @@ public abstract class LifeCycle extends BasePositionService {
 	 * @param bot
 	 * @return DecisionResponse
 	 * @throws MarketDoesNotExistException 
+	 * @throws DataException 
+	 * @throws PositionOpenException 
 	 */
 	public abstract DecisionResponse performMonitorOperationForItem(ItemInfo itemInfo, BotDefinition bot,
-			List<TradeVO> openPositions, Map<String, Object> config) throws MarketDoesNotExistException;
+			List<TradeVO> openPositions, Map<String, Object> config) throws MarketDoesNotExistException, DataException, PositionOpenException;
 
 	/**
 	 * Enters into a long position for the item

@@ -25,20 +25,18 @@ public abstract class MarketInterface extends BaseService{
 	 * @return
 	 */
 	protected String getRandomOrderId() {
-		Double result = Math.random();
-		result = result * Math.pow(10, 8);
-		result = Math.floor(result);
-		return result.toString();
+		BigDecimal result = new BigDecimal(Math.random());
+		result = result.multiply(new BigDecimal(Math.pow(10, 8)));
+		result = result.abs();
+		return result.toBigInteger().toString();
 	}
 
 	/**
 	 * get the account details and print to console for the bot at time
-	 * 
 	 * @param bot
-	 * @param serverTime
 	 * @return
 	 */
-	public abstract Object getAccountData(BotDefinition bot, long serverTime);
+	public abstract Object getAccountData(BotDefinition bot);
 
 	/**
 	 * returns list of markets that the interface can access
