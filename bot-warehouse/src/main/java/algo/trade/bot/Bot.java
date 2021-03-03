@@ -63,16 +63,12 @@ public abstract class Bot extends BaseService implements Callable<Boolean>{
 	 * @return
 	 * @throws MarketDoesNotExistException 
 	 */
-	public abstract Boolean setupBot() throws MarketDoesNotExistException;
+	public abstract Boolean setupBot();
 		
 	/**
 	 * Starts the bot activity
-	 * @throws LifeCycleDoesNotExistException 
-	 * @throws MarketDoesNotExistException 
-	 * @throws PositionOpenException 
-	 * @throws DataException 
 	 */
-	public abstract void startBot() throws LifeCycleDoesNotExistException, MarketDoesNotExistException, DataException, PositionOpenException;
+	public abstract void startBot();
 	
 	/**
 	 * Stops the bot activity
@@ -97,7 +93,7 @@ public abstract class Bot extends BaseService implements Callable<Boolean>{
 	 * 
 	 */
 	@Override
-	public Boolean call() throws MarketDoesNotExistException, LifeCycleDoesNotExistException, DataException, PositionOpenException {
+	public Boolean call() {
 		setupBot();
 		startBot();
 		return true;

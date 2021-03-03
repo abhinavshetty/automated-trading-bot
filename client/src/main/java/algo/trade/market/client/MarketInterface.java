@@ -36,7 +36,7 @@ public abstract class MarketInterface extends BaseService{
 	 * @param bot
 	 * @return
 	 */
-	public abstract Object getAccountData(BotDefinition bot);
+	public abstract List<TradeVO> getAccountData(BotDefinition bot);
 
 	/**
 	 * returns list of markets that the interface can access

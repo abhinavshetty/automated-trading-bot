@@ -11,10 +11,7 @@ import algo.trade.bot.beans.TradeVO;
 import algo.trade.constants.SystemConstants;
 import algo.trade.decision.beans.DecisionResponse;
 import algo.trade.decision.beans.EntryDecisionQuery;
-import algo.trade.errors.DataException;
-import algo.trade.errors.LifeCycleDoesNotExistException;
 import algo.trade.errors.MarketDoesNotExistException;
-import algo.trade.errors.PositionOpenException;
 import algo.trade.lifecycle.client.LifeCycle;
 import algo.trade.market.beans.Kline;
 import algo.trade.market.client.MarketInterface;
@@ -24,23 +21,31 @@ public class QuarterHourlyLookerBot extends Bot {
 	private static final String NAME = "QHL";
 
 	@Override
-	public Boolean setupBot() throws MarketDoesNotExistException {
+	public Boolean setupBot() {
 		if (botConfigurationConstants == null) {
 			// initialize bot config from decision engine
 			EntryDecisionQuery request = new EntryDecisionQuery();
 			request.setBot(botDefinition);
 			botConfigurationConstants = engine.getBotConfigurationConstants(request);
 		}
+		
+		MarketInterface marketClient;
+		try {
+			marketClient = marketFactory.getClient(botDefinition);
+			if (botMarket == null) {
+				// uncreated bot market
+				botMarket = marketClient.getAllItemsData(botDefinition);
+			}
+			
+			// initialize positions for the bot
+			outstandingBotPositions = marketClient.getAccountData(botDefinition);
 
-		if (botMarket == null) {
-			// uncreated bot market
-			botMarket = marketFactory.getClient(botDefinition).getAllItemsData(botDefinition);
+			filterBotMarketBasedOnAvailableHistory();
+		} catch (MarketDoesNotExistException e) {
+			LOG.error("The market specified in the definition does not exist.");
 		}
-		Object o;
-		// initialize positions for the bot
-		o = marketFactory.getClient(botDefinition).getAccountData(botDefinition);
 
-		filterBotMarketBasedOnAvailableHistory();
+		
 		return true;
 	}
 
@@ -137,6 +142,7 @@ public class QuarterHourlyLookerBot extends Bot {
 		} catch (Exception e) {
 			// TODO: handle exception
 			LOG.error("There was an error.");
+			e.printStackTrace();
 		}
 		
 	}

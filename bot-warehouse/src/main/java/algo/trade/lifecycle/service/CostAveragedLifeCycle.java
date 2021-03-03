@@ -153,6 +153,8 @@ public class CostAveragedLifeCycle extends LifeCycle {
 			result.setShouldBotActOnItem(false);
 		}
 
+		LOG.info("Checked " + itemInfo);
+		
 		openPositionsForItem = null;
 		marketClient = null;
 		dataWrapper = null;

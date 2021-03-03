@@ -97,7 +97,7 @@ public class BinanceFuturesMarketClient extends MarketInterface {
 	}
 
 	@Override
-	public Object getAccountData(BotDefinition bot) {
+	public List<TradeVO> getAccountData(BotDefinition bot) {
 		List<TradeVO> trades = new ArrayList<TradeVO>();
 		List<PositionRisk> positions = getClient().getPositionRisk();
 

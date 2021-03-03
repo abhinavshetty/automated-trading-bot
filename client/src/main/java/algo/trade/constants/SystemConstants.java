@@ -45,6 +45,12 @@ public class SystemConstants {
 	public static final String SHORT_STOP_LOSS_ACTION = "SHORT_STOP_LOSS";
 	public static final String MAX_PORTFOLIO_SIZE_KEY = "MAX_PORTFOLIO_SIZE";
 	public static final String COMPARISON_INDEX_KEY = "COMPARISON_INDEX";
+	public static final String LONG_PROFIT_KEY = "LONG_PROFIT";
+	public static final String LONG_EXTENSION_THRESHOLD_KEY = "LONG_EXTENSION_THRESHOLD";
+	public static final String LONG_STOP_LOSS_THRESHOLD_KEY = "LONG_STOP_LOSS_THRESHOLD";
+	public static final String SHORT_PROFIT_KEY = "SHORT_PROFIT";
+	public static final String SHORT_EXTENSION_THRESHOLD_KEY = "SHORT_EXTENSION_THRESHOLD";
+	public static final String SHORT_STOP_LOSS_THRESHOLD_KEY = "SHORT_STOP_LOSS_THRESHOLD";
 	
 	// time periods
 	public static final String ONE_DAY = "1d";

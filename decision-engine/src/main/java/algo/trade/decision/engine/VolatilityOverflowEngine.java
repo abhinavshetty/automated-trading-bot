@@ -2,6 +2,7 @@ package algo.trade.decision.engine;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -15,6 +16,7 @@ import algo.trade.decision.beans.EntryDecisionQuery;
 import algo.trade.decision.beans.SecondaryActionDecisionQuery;
 import algo.trade.decision.client.DecisionEngine;
 import algo.trade.errors.PositionOpenException;
+import algo.trade.market.beans.ItemInfo;
 import algo.trade.market.beans.Kline;
 
 /**
@@ -37,20 +39,22 @@ public class VolatilityOverflowEngine extends DecisionEngine {
 	public DecisionResponse shouldBotOpenLongPosition(EntryDecisionQuery request) {
 		DecisionResponse result = constructEmptyResponse();
 
-		List<Kline> quarterHourlyData = request.getMarketData()
-				.get(botConfigurationConstants.get("ENTRY_MONITORING_KLINE_1"));
-		List<Kline> hourlyData = request.getMarketData().get(botConfigurationConstants.get("ENTRY_MONITORING_KLINE_2"));
+		List<Kline> quarterHourlyData = request.getMarketData().get(SystemConstants.ENTRY_MONITORING_KLINE_KEY + "_1");
+		List<Kline> hourlyData = request.getMarketData().get(SystemConstants.ENTRY_MONITORING_KLINE_KEY + "_2");
 		BigDecimal currentPrice = quarterHourlyData.get(quarterHourlyData.size() - 1).getClose();
-		
-		BollingerBandValues quarterHourlyBands = this.calculateBollingerBandsForInput(quarterHourlyData);
+
+		BollingerBandValues quarterHourlyBands = this.calculateBollingerBandsForInput(quarterHourlyData,
+				request.getItemInfo());
 		int localRsi = getRsi(hourlyData);
-		
-		BigDecimal comparisonIndex = currentPrice.subtract(quarterHourlyBands.getLowerBand()[quarterHourlyBands.getLowerBand().length - 1]);
-		comparisonIndex = comparisonIndex.divide(hourlyData.get(hourlyData.size() - 1).getOpen());
+
+		BigDecimal comparisonIndex = currentPrice
+				.subtract(quarterHourlyBands.getLowerBand().get(quarterHourlyBands.getLowerBand().size() - 1));
+		comparisonIndex = comparisonIndex.divide(hourlyData.get(hourlyData.size() - 1).getOpen(),
+				request.getItemInfo().getPricePrecision(), RoundingMode.CEILING);
 		comparisonIndex = comparisonIndex.abs();
 
 		if ((localRsi <= ((Integer) engineConfigurationConstants.get("LOWER_RSI_THRESHOLD"))) && currentPrice
-				.compareTo(quarterHourlyBands.getLowerBand()[quarterHourlyBands.getLowerBand().length - 1]) < 0) {
+				.compareTo(quarterHourlyBands.getLowerBand().get(quarterHourlyBands.getLowerBand().size() - 1)) < 0) {
 			result.setShouldBotActOnItem(true);
 			result.setDecisionParameters(new ConcurrentHashMap<String, BigDecimal>());
 			result.getDecisionParameters().put(SystemConstants.COMPARISON_INDEX_KEY, comparisonIndex);
@@ -74,12 +78,13 @@ public class VolatilityOverflowEngine extends DecisionEngine {
 		return rsi.intValue();
 	}
 
-	private BollingerBandValues calculateBollingerBandsForInput(final List<Kline> marketData) {
+	private BollingerBandValues calculateBollingerBandsForInput(final List<Kline> marketData, ItemInfo itemInfo) {
 		BollingerBandValues result = new BollingerBandValues();
 
 		int counter = 0;
 
-		for (; counter < Integer.valueOf(engineConfigurationConstants.get("ENTRY_MONITORING_WINDOW").toString())
+		for (; counter < Integer
+				.valueOf(botConfigurationConstants.get(SystemConstants.ENTRY_MONITORING_WINDOW_HOURS_KEY).toString())
 				- Integer.valueOf(
 						engineConfigurationConstants.get("BOLLINGER_BAND_MA_INTERVAL").toString()); counter++) {
 			List<Kline> marketDataWindow = marketData.subList(counter, counter
@@ -89,8 +94,9 @@ public class VolatilityOverflowEngine extends DecisionEngine {
 			for (Kline item : marketDataWindow) {
 				mean = mean.add(item.getClose());
 			}
-			mean = mean
-					.divide(new BigDecimal(engineConfigurationConstants.get("BOLLINGER_BAND_MA_INTERVAL").toString()));
+			mean = mean.divide(
+					new BigDecimal(engineConfigurationConstants.get("BOLLINGER_BAND_MA_INTERVAL").toString()),
+					itemInfo.getPricePrecision(), RoundingMode.CEILING);
 
 			for (Kline item : marketDataWindow) {
 				BigDecimal difference = item.getClose();
@@ -100,13 +106,14 @@ public class VolatilityOverflowEngine extends DecisionEngine {
 				stdDev = stdDev.add(difference);
 			}
 
-			stdDev = stdDev
-					.divide(new BigDecimal(engineConfigurationConstants.get("BOLLINGER_BAND_MA_INTERVAL").toString()));
+			stdDev = stdDev.divide(
+					new BigDecimal(engineConfigurationConstants.get("BOLLINGER_BAND_MA_INTERVAL").toString()),
+					itemInfo.getPricePrecision(), RoundingMode.CEILING);
 			stdDev = new BigDecimal(Math.sqrt(stdDev.doubleValue()), MathContext.DECIMAL32);
 
-			result.getMiddleBand()[counter] = mean;
-			result.getLowerBand()[counter] = mean.subtract((stdDev.multiply(new BigDecimal(2))));
-			result.getUpperBand()[counter] = mean.add((stdDev.multiply(new BigDecimal(2))));
+			result.getMiddleBand().add(mean);
+			result.getLowerBand().add(mean.subtract((stdDev.multiply(new BigDecimal(2)))));
+			result.getUpperBand().add(mean.add((stdDev.multiply(new BigDecimal(2)))));
 		}
 
 		return result;
@@ -116,9 +123,9 @@ public class VolatilityOverflowEngine extends DecisionEngine {
 	public DecisionResponse shouldBotExtendLongPosition(SecondaryActionDecisionQuery request) {
 		DecisionResponse result = constructEmptyResponse();
 		BigDecimal firstEntryPrice = request.getCurrentOutstandingTrades().get(0).getBuyPrice();
-		BigDecimal currentPrice = request.getMarketData()
-				.get(engineConfigurationConstants.get(SystemConstants.EXTENSION_MONITORING_KLINE_KEY))
-				.get(request.getMarketData().get(SystemConstants.EXTENSION_MONITORING_KLINE_KEY).size() - 1).getClose();
+		List<Kline> marketData = request.getMarketData()
+				.get(botConfigurationConstants.get(SystemConstants.EXTENSION_MONITORING_KLINE_KEY));
+		BigDecimal currentPrice = marketData.get(marketData.size() - 1).getClose();
 
 		result.setShouldBotActOnItem((firstEntryPrice.multiply(
 				(BigDecimal.ONE.subtract((BigDecimal) engineConfigurationConstants.get("LONG_EXTENSION_THRESHOLD")))))
@@ -131,11 +138,9 @@ public class VolatilityOverflowEngine extends DecisionEngine {
 	public DecisionResponse shouldBotPerformLongStopLossAction(SecondaryActionDecisionQuery request) {
 		DecisionResponse result = constructEmptyResponse();
 		try {
-			BigDecimal currentPrice = request.getMarketData()
-					.get(engineConfigurationConstants.get(SystemConstants.EXTENSION_MONITORING_KLINE_KEY)).get(request.getMarketData()
-							.get(engineConfigurationConstants.get(SystemConstants.EXTENSION_MONITORING_KLINE_KEY)).size() - 1)
-					.getClose();
-
+			List<Kline> marketData = request.getMarketData()
+					.get(botConfigurationConstants.get(SystemConstants.EXTENSION_MONITORING_KLINE_KEY));
+			BigDecimal currentPrice = marketData.get(marketData.size() - 1).getClose();
 			List<TradeVO> currentPosition = request.getCurrentOutstandingTrades();
 			currentPosition.forEach(item -> item.setSellPrice(currentPrice));
 
@@ -197,8 +202,8 @@ public class VolatilityOverflowEngine extends DecisionEngine {
 		try {
 			entryPrice = this.getWeightedAverageSidePriceForPosition(request.getCurrentOutstandingTrades(),
 					SystemConstants.BUY_SIDE);
-			result = entryPrice
-					.multiply(BigDecimal.ONE.add((BigDecimal) engineConfigurationConstants.get("LONG_PROFIT")));
+			result = entryPrice.multiply(
+					BigDecimal.ONE.add((BigDecimal) engineConfigurationConstants.get(SystemConstants.LONG_PROFIT_KEY)));
 		} catch (PositionOpenException e) {
 			LOG.error("One or more buy prices could not be read from the request. Please check the request for item : "
 					+ request.getItemInfo());
@@ -216,8 +221,8 @@ public class VolatilityOverflowEngine extends DecisionEngine {
 		try {
 			entryPrice = this.getWeightedAverageSidePriceForPosition(request.getCurrentOutstandingTrades(),
 					SystemConstants.SELL_SIDE);
-			result = entryPrice
-					.multiply(BigDecimal.ONE.subtract((BigDecimal) engineConfigurationConstants.get("SHORT_PROFIT")));
+			result = entryPrice.multiply(BigDecimal.ONE
+					.subtract((BigDecimal) engineConfigurationConstants.get(SystemConstants.SHORT_PROFIT_KEY)));
 		} catch (PositionOpenException e) {
 			LOG.error("One or more sell prices could not be read from the request. Please check the request for item : "
 					+ request.getItemInfo());
@@ -242,9 +247,12 @@ public class VolatilityOverflowEngine extends DecisionEngine {
 
 	@Override
 	protected void initializeEngineConfigurationConstants() {
-		engineConfigurationConstants.put("LONG_PROFIT", new BigDecimal(0.15d));
-		engineConfigurationConstants.put("LONG_STOP_LOSS_THRESHOLD", new BigDecimal(-0.05d));
-		engineConfigurationConstants.put("LONG_STOP_LOSS_THRESHOLD", new BigDecimal(-0.05d));
+		engineConfigurationConstants.put(SystemConstants.LONG_PROFIT_KEY, new BigDecimal(0.05d));
+		engineConfigurationConstants.put(SystemConstants.LONG_EXTENSION_THRESHOLD_KEY, new BigDecimal(-0.08d));
+		engineConfigurationConstants.put(SystemConstants.LONG_STOP_LOSS_THRESHOLD_KEY, new BigDecimal(-0.05d));
+		engineConfigurationConstants.put(SystemConstants.SHORT_PROFIT_KEY, new BigDecimal(0.01d));
+		engineConfigurationConstants.put(SystemConstants.SHORT_EXTENSION_THRESHOLD_KEY, new BigDecimal(0.08d));
+		engineConfigurationConstants.put(SystemConstants.SHORT_STOP_LOSS_THRESHOLD_KEY, new BigDecimal(-0.05d));
 		engineConfigurationConstants.put("UPPER_RSI_THRESHOLD", 65);
 		engineConfigurationConstants.put("LOWER_RSI_THRESHOLD", 35);
 		engineConfigurationConstants.put("BOLLINGER_BAND_MA_INTERVAL", 20);

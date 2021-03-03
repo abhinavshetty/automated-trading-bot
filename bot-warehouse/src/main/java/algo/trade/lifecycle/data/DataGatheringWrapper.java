@@ -1,6 +1,7 @@
 package algo.trade.lifecycle.data;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -37,7 +38,8 @@ public class DataGatheringWrapper implements MarketDataWrapper {
 		Map<String, List<Kline>> result = new ConcurrentHashMap<String, List<Kline>>();
 		MarketInterface client = marketFactory.getClient(bot);
 
-		Set<String> entryKlines = config.keySet();
+		Set<String> entryKlines = new HashSet<String>();
+		entryKlines.addAll(config.keySet());
 		entryKlines.removeIf(item -> !(item.contains(SystemConstants.ENTRY_MONITORING_KLINE_KEY)));
 
 		for (String klineGroup : entryKlines) {
@@ -60,7 +62,8 @@ public class DataGatheringWrapper implements MarketDataWrapper {
 		Map<String, List<Kline>> result = new ConcurrentHashMap<String, List<Kline>>();
 		MarketInterface client = marketFactory.getClient(bot);
 
-		Set<String> entryKlines = config.keySet();
+		Set<String> entryKlines = new HashSet<String>();
+		entryKlines.addAll(config.keySet());
 		entryKlines.removeIf(item -> !(item.contains(SystemConstants.ENTRY_MONITORING_KLINE_KEY)));
 
 		for (String klineGroup : entryKlines) {
@@ -83,7 +86,8 @@ public class DataGatheringWrapper implements MarketDataWrapper {
 		Map<String, List<Kline>> result = new ConcurrentHashMap<String, List<Kline>>();
 		MarketInterface client = marketFactory.getClient(bot);
 
-		Set<String> entryKlines = config.keySet();
+		Set<String> entryKlines = new HashSet<String>();
+		entryKlines.addAll(config.keySet());
 		entryKlines.removeIf(item -> !(item.contains(SystemConstants.EXTENSION_MONITORING_KLINE_KEY)));
 
 		for (String klineGroup : entryKlines) {
@@ -106,7 +110,8 @@ public class DataGatheringWrapper implements MarketDataWrapper {
 		Map<String, List<Kline>> result = new ConcurrentHashMap<String, List<Kline>>();
 		MarketInterface client = marketFactory.getClient(bot);
 
-		Set<String> entryKlines = config.keySet();
+		Set<String> entryKlines = new HashSet<String>();
+		entryKlines.addAll(config.keySet());
 		entryKlines.removeIf(item -> !(item.contains(SystemConstants.EXTENSION_MONITORING_KLINE_KEY)));
 
 		for (String klineGroup : entryKlines) {

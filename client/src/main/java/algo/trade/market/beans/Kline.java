@@ -85,13 +85,13 @@ public class Kline implements Comparable<Kline> {
 	}
 	
 	public BigDecimal getPercentChange() {
-		return (close.subtract(open)).divide(close);
+		return this.percentChange;
 	}
 	public void setPercentChange(BigDecimal percentChange) {
 		this.percentChange = percentChange;
 	}
 	public BigDecimal getAmplitude() {
-		return (high.subtract(low)).divide(open);
+		return amplitude;
 	}
 	public void setAmplitude(BigDecimal amplitude) {
 		this.amplitude = amplitude;
