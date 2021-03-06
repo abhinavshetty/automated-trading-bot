@@ -69,6 +69,9 @@ public class CostAveragedLifeCycle extends LifeCycle {
 					result = shortCondition;
 				}
 			}
+			
+			entryData = null;
+			longCondition = null;
 		} else {
 			// there are open positions for this item. Evaluate stop-loss or extension
 			// possibilities
@@ -153,8 +156,8 @@ public class CostAveragedLifeCycle extends LifeCycle {
 			result.setShouldBotActOnItem(false);
 		}
 
-		LOG.info("Checked " + itemInfo);
-		
+//		LOG.info("Checked " + itemInfo);
+
 		openPositionsForItem = null;
 		marketClient = null;
 		dataWrapper = null;
@@ -164,14 +167,17 @@ public class CostAveragedLifeCycle extends LifeCycle {
 	}
 
 	@Override
-	public TradeVO enterLongPositionAndPostExitTrade(BotDefinition bot, ItemInfo itemInfo,
-			Map<String, List<Kline>> marketData, long currentTime, Map<String, Object> config)
+	public TradeVO enterLongPositionAndPostExitTrade(BotDefinition bot, ItemInfo itemInfo, Map<String, Object> config)
 			throws ZeroQuantityOrderedException, MarketDoesNotExistException, DataException {
 		// open a long position via market buy and post a limit sell trade to exit an
 		// opened position.
 		TradeVO entryResult = null;
 		BigDecimal currentPrice = null;
 		MarketInterface marketClient = marketFactory.getClient(bot);
+
+		long currentTime = marketClient.getServerTime(bot);
+		Map<String, List<Kline>> marketData = dataFactory.getDataWrapperForLifeCycle(bot)
+				.getLongEntryMarketData(itemInfo, bot, currentTime, config);
 
 		for (String klineSet : marketData.keySet()) {
 			currentPrice = marketData.get(klineSet).get(marketData.get(klineSet).size() - 1).getClose();
@@ -180,7 +186,7 @@ public class CostAveragedLifeCycle extends LifeCycle {
 		BigDecimal valueAtRisk = bot.getCurrentMoney()
 				.multiply(new BigDecimal(config.get(SystemConstants.INITIAL_TRADE_MARGIN_KEY).toString()));
 		BigDecimal quantity = valueAtRisk.divide(currentPrice);
-		
+
 		if (quantity.compareTo(BigDecimal.ZERO) > 0) {
 			// non zero quantity post rounding. perform entry action.
 			entryResult = marketClient.postTrade(currentPrice, quantity, SystemConstants.BUY_SIDE,
@@ -217,14 +223,17 @@ public class CostAveragedLifeCycle extends LifeCycle {
 	}
 
 	@Override
-	public TradeVO enterShortPositionAndPostExitTrade(BotDefinition bot, ItemInfo itemInfo,
-			Map<String, List<Kline>> marketData, long currentTime, Map<String, Object> config)
+	public TradeVO enterShortPositionAndPostExitTrade(BotDefinition bot, ItemInfo itemInfo, Map<String, Object> config)
 			throws ZeroQuantityOrderedException, MarketDoesNotExistException, DataException {
 		// open a short position via market sell and post limit buy to exit the
 		// position.
 		TradeVO entryResult = null;
 		BigDecimal currentPrice = null;
 		MarketInterface marketClient = marketFactory.getClient(bot);
+
+		long currentTime = marketClient.getServerTime(bot);
+		Map<String, List<Kline>> marketData = dataFactory.getDataWrapperForLifeCycle(bot)
+				.getShortEntryMarketData(itemInfo, bot, currentTime, config);
 
 		for (String klineSet : marketData.keySet()) {
 			currentPrice = marketData.get(klineSet).get(marketData.get(klineSet).size() - 1).getClose();
@@ -268,14 +277,18 @@ public class CostAveragedLifeCycle extends LifeCycle {
 	}
 
 	@Override
-	public TradeVO extendLongPosition(ItemInfo itemInfo, List<TradeVO> currentPosition,
-			Map<String, List<Kline>> marketData, long currentTime, BotDefinition bot, Map<String, Object> config)
+	public TradeVO extendLongPosition(ItemInfo itemInfo, List<TradeVO> currentPosition, BotDefinition bot,
+			Map<String, Object> config)
 			throws ZeroQuantityOrderedException, MarketDoesNotExistException, DataException {
 		// extends an open long position via market buy and post a limit sell trade to
 		// exit the cumulative position.
 		TradeVO extensionResult = null;
 		BigDecimal currentPrice = null;
 		MarketInterface marketClient = marketFactory.getClient(bot);
+
+		long currentTime = marketClient.getServerTime(bot);
+		Map<String, List<Kline>> marketData = dataFactory.getDataWrapperForLifeCycle(bot)
+				.getLongCorrectionMarketData(itemInfo, bot, currentTime, config);
 
 		for (String klineSet : marketData.keySet()) {
 			currentPrice = marketData.get(klineSet).get(marketData.get(klineSet).size() - 1).getClose();
@@ -325,14 +338,18 @@ public class CostAveragedLifeCycle extends LifeCycle {
 	}
 
 	@Override
-	public TradeVO extendShortPosition(ItemInfo itemInfo, List<TradeVO> currentPosition,
-			Map<String, List<Kline>> marketData, long currentTime, BotDefinition bot, Map<String, Object> config)
+	public TradeVO extendShortPosition(ItemInfo itemInfo, List<TradeVO> currentPosition, BotDefinition bot,
+			Map<String, Object> config)
 			throws ZeroQuantityOrderedException, MarketDoesNotExistException, DataException {
 		// extends an open long position via market buy and post a limit sell trade to
 		// exit the cumulative position.
 		TradeVO extensionResult = null;
 		BigDecimal currentPrice = null;
 		MarketInterface marketClient = marketFactory.getClient(bot);
+
+		long currentTime = marketClient.getServerTime(bot);
+		Map<String, List<Kline>> marketData = dataFactory.getDataWrapperForLifeCycle(bot)
+				.getShortCorrectionMarketData(itemInfo, bot, currentTime, config);
 
 		for (String klineSet : marketData.keySet()) {
 			currentPrice = marketData.get(klineSet).get(marketData.get(klineSet).size() - 1).getClose();
@@ -382,13 +399,16 @@ public class CostAveragedLifeCycle extends LifeCycle {
 	}
 
 	@Override
-	public TradeVO stopLossLongPosition(ItemInfo itemInfo, List<TradeVO> currentPosition,
-			Map<String, List<Kline>> marketData, long currentTime, BotDefinition bot, Map<String, Object> config)
-			throws MarketDoesNotExistException, DataException {
+	public TradeVO stopLossLongPosition(ItemInfo itemInfo, List<TradeVO> currentPosition, BotDefinition bot,
+			Map<String, Object> config) throws MarketDoesNotExistException, DataException {
 		// stop-losses an open long position through a market sell order.
 		TradeVO stopLossResult = null;
 		BigDecimal currentPrice = null;
 		MarketInterface marketClient = marketFactory.getClient(bot);
+
+		long currentTime = marketClient.getServerTime(bot);
+		Map<String, List<Kline>> marketData = dataFactory.getDataWrapperForLifeCycle(bot)
+				.getLongCorrectionMarketData(itemInfo, bot, currentTime, config);
 
 		TradeVO openBuyOrder = currentPosition.get(currentPosition.size() - 1);
 		marketClient.cancelTrade(bot, openBuyOrder, currentTime);
@@ -410,13 +430,16 @@ public class CostAveragedLifeCycle extends LifeCycle {
 	}
 
 	@Override
-	public TradeVO stopLossShortPosition(ItemInfo itemInfo, List<TradeVO> currentPosition,
-			Map<String, List<Kline>> marketData, long currentTime, BotDefinition bot, Map<String, Object> config)
-			throws MarketDoesNotExistException, DataException {
+	public TradeVO stopLossShortPosition(ItemInfo itemInfo, List<TradeVO> currentPosition, BotDefinition bot,
+			Map<String, Object> config) throws MarketDoesNotExistException, DataException {
 		// stop-losses an open short position through a market buy order.
 		TradeVO stopLossResult = null;
 		BigDecimal currentPrice = null;
 		MarketInterface marketClient = marketFactory.getClient(bot);
+
+		long currentTime = marketClient.getServerTime(bot);
+		Map<String, List<Kline>> marketData = dataFactory.getDataWrapperForLifeCycle(bot)
+				.getShortCorrectionMarketData(itemInfo, bot, currentTime, config);
 
 		TradeVO openSellOrder = currentPosition.get(currentPosition.size() - 1);
 		marketClient.cancelTrade(bot, openSellOrder, currentTime);

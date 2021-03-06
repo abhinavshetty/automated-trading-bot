@@ -6,9 +6,8 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import javax.annotation.PostConstruct;
-
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import algo.trade.bot.Bot;
@@ -24,55 +23,45 @@ import algo.trade.transform.service.BaseService;
  * @author Abhinav Shetty
  */
 @Component
-public class BotWarehouse extends BaseService{
-	
+public class BotWarehouse extends BaseService {
+
 	@Autowired
 	private BotFactory botFactory;
-	
-	private List<Boolean> botResult = new ArrayList<Boolean>();
-	
+
+	private List<BotDefinition> botDefinitions;
+
+	private List<Bot> bots = new ArrayList<Bot>();
+
 	private ExecutorService botProcessingLines = Executors.newCachedThreadPool();
 
 	/**
 	 * initializes resources used in the bot called after application context is
 	 * constructed and before application is ready.
 	 */
-	@PostConstruct
+	@Scheduled(initialDelay = 10000, fixedRate = 60000)
 	public final void initializeBots() {
-		// initialize all user trade and profile resources
-		
-		List<BotDefinition> bots = new ArrayList<BotDefinition>();
-		BotDefinition firstBot = new BotDefinition("CA", "VOE", "BINANCE_FUTURES", "QHL", new BigDecimal(300), new BigDecimal(300), "USDT", null, SystemConstants.RUNNING);
-//		BotDefinition secondBot = new BotDefinition("CA", "VOE", "BINANCE_FUTURES", "QHL", new BigDecimal(300), new BigDecimal(200), "USDT", null, SystemConstants.RUNNING);
-		bots.add(firstBot);
-//		bots.add(secondBot);
-		
-		for (BotDefinition bot : bots) {
-			try {
-				Bot botUnit = botFactory.getBot(bot);
-				botUnit.setBotDefinition(bot);
-				botProcessingLines.submit(botUnit);
-				
-			} catch (BotDoesNotExistException e) {
-				LOG.error("Could not get a bot for this name: " + bot.getBotName());
+		// initialize all bots definitions. Use databases to manage here.
+		if (botDefinitions == null) {
+			botDefinitions = new ArrayList<BotDefinition>();
+			BotDefinition firstBot = new BotDefinition("CA", "VOE", "BINANCE_FUTURES", "QHL", new BigDecimal(300),
+					new BigDecimal(300), "USDT", null, SystemConstants.RUNNING);
+			botDefinitions.add(firstBot);
+			for (BotDefinition botDef : botDefinitions) {
+				try {
+					Bot botUnit = botFactory.getBot(botDef);
+					botUnit.setBotDefinition(botDef);
+					bots.add(botUnit);
+				} catch (BotDoesNotExistException e) {
+					LOG.error("Could not get a bot for this name: " + botDef.getBotName());
+				}
 			}
+			LOG.info("All trading bots instantiated! ");
 		}
 		
-
-		LOG.info("All trading bots initialized! ");
-	}
-
-	public final void createAndStartAllBots() throws InterruptedException {
-//		for (Integer botId : allBots.keySet()) {
-//			LOG.info("Starting AP bot : " + allBots.get(botId).getBotDefinition());
-//			taskResultSet.add(botPool.get(botId).submit(allBots.get(botId)));
-//		}
-//
-//		Date now = new Date();
-//
-//		while (taskResultSet.size() > 0) {
-//			taskResultSet.removeIf(item -> item.isDone());
-//		}
+		LOG.info("Starting all bots iterative monitoring");
+		for (Bot bot : bots) {
+			botProcessingLines.submit(bot);
+		}
 	}
 
 }

@@ -56,6 +56,10 @@ public class VolatilityOverflowEngine extends DecisionEngine {
 		if ((localRsi <= ((Integer) engineConfigurationConstants.get("LOWER_RSI_THRESHOLD"))) && currentPrice
 				.compareTo(quarterHourlyBands.getLowerBand().get(quarterHourlyBands.getLowerBand().size() - 1)) < 0) {
 			result.setShouldBotActOnItem(true);
+			
+			result.setConfigParameters(new ConcurrentHashMap<String, Object>());
+			result.getConfigParameters().put(SystemConstants.ITEM_INFO_KEY, request.getItemInfo());
+			
 			result.setDecisionParameters(new ConcurrentHashMap<String, BigDecimal>());
 			result.getDecisionParameters().put(SystemConstants.COMPARISON_INDEX_KEY, comparisonIndex);
 		}
@@ -130,6 +134,11 @@ public class VolatilityOverflowEngine extends DecisionEngine {
 		result.setShouldBotActOnItem((firstEntryPrice.multiply(
 				(BigDecimal.ONE.subtract((BigDecimal) engineConfigurationConstants.get("LONG_EXTENSION_THRESHOLD")))))
 						.compareTo(currentPrice) > 0);
+		
+		if (result.isShouldBotActOnItem()) {
+			result.setConfigParameters(new ConcurrentHashMap<String, Object>());
+			result.getConfigParameters().put(SystemConstants.ITEM_INFO_KEY, request.getItemInfo());
+		}
 
 		return result;
 	}
@@ -148,6 +157,11 @@ public class VolatilityOverflowEngine extends DecisionEngine {
 
 			result.setShouldBotActOnItem(unrealizedLoss.compareTo(request.getBot().getCurrentMoney()
 					.multiply((BigDecimal) engineConfigurationConstants.get("LONG_STOP_LOSS_THRESHOLD"))) < 0);
+			
+			if (result.isShouldBotActOnItem()) {
+				result.setConfigParameters(new ConcurrentHashMap<String, Object>());
+				result.getConfigParameters().put(SystemConstants.ITEM_INFO_KEY, request.getItemInfo());
+			}
 		} catch (PositionOpenException e) {
 			LOG.error("One or more positions do not have buy prices defined. Please check the request for item "
 					+ request.getItemInfo());
@@ -233,7 +247,7 @@ public class VolatilityOverflowEngine extends DecisionEngine {
 
 	@Override
 	protected void initializeBotConfigurationConstants() {
-		botConfigurationConstants.put(SystemConstants.INITIAL_TRADE_MARGIN_KEY, 0.05d);
+		botConfigurationConstants.put(SystemConstants.INITIAL_TRADE_MARGIN_KEY, 0.1d);
 		botConfigurationConstants.put(SystemConstants.EXTENSION_TRADE_MARGIN_KEY, 0.1d);
 		botConfigurationConstants.put(SystemConstants.MINIMUM_ITEM_TRADE_HISTORY_DAYS_KEY, 60);
 
