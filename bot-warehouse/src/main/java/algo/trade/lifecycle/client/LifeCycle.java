@@ -58,81 +58,91 @@ public abstract class LifeCycle extends BasePositionService {
 
 	/**
 	 * Enters into a long position for the item
-	 * 
+	 * @param openPositions
 	 * @param bot
 	 * @param itemInfo
+	 * @param config
 	 * @return
 	 * @throws ZeroQuantityOrderedException
 	 * @throws MarketDoesNotExistException
 	 * @throws DataException
 	 */
-	public abstract TradeVO enterLongPositionAndPostExitTrade(BotDefinition bot, ItemInfo itemInfo,
+	public abstract TradeVO enterLongPositionAndPostExitTrade(List<TradeVO> openPositions, BotDefinition bot, ItemInfo itemInfo,
 			Map<String, Object> config) throws ZeroQuantityOrderedException, MarketDoesNotExistException, DataException;
 
 	/**
 	 * Enters into a short position for the item
-	 * 
+	 * @param openPositions
 	 * @param bot
 	 * @param itemInfo
+	 * @param config
 	 * @return
+	 * @throws ZeroQuantityOrderedException
 	 * @throws MarketDoesNotExistException
 	 * @throws DataException
 	 */
-	public abstract TradeVO enterShortPositionAndPostExitTrade(BotDefinition bot, ItemInfo itemInfo,
+	public abstract TradeVO enterShortPositionAndPostExitTrade(List<TradeVO> openPositions, BotDefinition bot, ItemInfo itemInfo,
 			Map<String, Object> config) throws ZeroQuantityOrderedException, MarketDoesNotExistException, DataException;
 
 	/**
 	 * Extends long position in an item
-	 * 
 	 * @param itemInfo
-	 * @param currentPosition
+	 * @param openPositions
 	 * @param bot
+	 * @param config
 	 * @return
 	 * @throws ZeroQuantityOrderedException
 	 * @throws MarketDoesNotExistException
 	 * @throws DataException
 	 */
-	public abstract TradeVO extendLongPosition(ItemInfo itemInfo, List<TradeVO> currentPosition, BotDefinition bot,
+	public abstract TradeVO extendLongPosition(ItemInfo itemInfo, List<TradeVO> openPositions, BotDefinition bot,
 			Map<String, Object> config) throws ZeroQuantityOrderedException, MarketDoesNotExistException, DataException;
 
 	/**
 	 * Extends short position into item
-	 * 
 	 * @param itemInfo
-	 * @param currentPosition
+	 * @param openPositions
 	 * @param bot
+	 * @param config
 	 * @return
 	 * @throws ZeroQuantityOrderedException
 	 * @throws MarketDoesNotExistException
 	 * @throws DataException
 	 */
-	public abstract TradeVO extendShortPosition(ItemInfo itemInfo, List<TradeVO> currentPosition, BotDefinition bot,
+	public abstract TradeVO extendShortPosition(ItemInfo itemInfo, List<TradeVO> openPositions, BotDefinition bot,
 			Map<String, Object> config) throws ZeroQuantityOrderedException, MarketDoesNotExistException, DataException;
 
 	/**
 	 * Stop losses a long position in an item
-	 * 
 	 * @param itemInfo
-	 * @param currentPosition
+	 * @param openPositions
 	 * @param bot
+	 * @param config
 	 * @return
 	 * @throws MarketDoesNotExistException
 	 * @throws DataException
 	 */
-	public abstract TradeVO stopLossLongPosition(ItemInfo itemInfo, List<TradeVO> currentPosition, BotDefinition bot,
+	public abstract TradeVO stopLossLongPosition(ItemInfo itemInfo, List<TradeVO> openPositions, BotDefinition bot,
 			Map<String, Object> config) throws MarketDoesNotExistException, DataException;
 
 	/**
 	 * Stop losses a short position in an item
-	 * 
 	 * @param itemInfo
-	 * @param currentPosition
+	 * @param openPositions
 	 * @param bot
+	 * @param config
 	 * @return
 	 * @throws MarketDoesNotExistException
 	 * @throws DataException
 	 */
-	public abstract TradeVO stopLossShortPosition(ItemInfo itemInfo, List<TradeVO> currentPosition, BotDefinition bot,
+	public abstract TradeVO stopLossShortPosition(ItemInfo itemInfo, List<TradeVO> openPositions, BotDefinition bot,
 			Map<String, Object> config) throws MarketDoesNotExistException, DataException;
+	
+	/**
+	 * Logs the closing of a position.
+	 * @param openPositions
+	 * @param itemInfo
+	 */
+	public abstract void logPositionClose(List<TradeVO> openPositions, ItemInfo itemInfo);
 
 }

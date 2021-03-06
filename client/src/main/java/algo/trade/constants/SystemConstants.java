@@ -17,7 +17,7 @@ public class SystemConstants {
 	public static final String BUY_SIDE = "BUY";
 
 	public static final String SELL_SIDE = "SELL";
-	
+
 	public static final String LIMIT_ORDER = "LIMIT";
 	public static final String MARKET_ORDER = "MARKET";
 
@@ -51,7 +51,8 @@ public class SystemConstants {
 	public static final String SHORT_PROFIT_KEY = "SHORT_PROFIT";
 	public static final String SHORT_EXTENSION_THRESHOLD_KEY = "SHORT_EXTENSION_THRESHOLD";
 	public static final String SHORT_STOP_LOSS_THRESHOLD_KEY = "SHORT_STOP_LOSS_THRESHOLD";
-	
+	public static final String ITEM_INFO_KEY = "ITEM_INFO";
+
 	// time periods
 	public static final String ONE_DAY = "1d";
 	public static final String TWELVE_HOURS = "12h";
@@ -63,6 +64,4 @@ public class SystemConstants {
 	public static final String QUARTER_HOUR = "15m";
 	public static final String FIVE_MINUTES = "5m";
 	public static final String ONE_MINUTE = "1m";
-	
-	
 }

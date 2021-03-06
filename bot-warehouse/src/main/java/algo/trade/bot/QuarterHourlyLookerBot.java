@@ -141,7 +141,7 @@ public class QuarterHourlyLookerBot extends Bot {
 								.get(SystemConstants.DECISION_TAKING_ACTION_KEY).toString();
 						if (SystemConstants.LONG_ENTRY_ACTION.equalsIgnoreCase(actionToTake)) {
 							
-							lifeCycleForBot.enterLongPositionAndPostExitTrade(botDefinition,
+							lifeCycleForBot.enterLongPositionAndPostExitTrade(outstandingBotPositions, botDefinition,
 									ItemInfo.class
 											.cast(itemResult.getConfigParameters().get(SystemConstants.ITEM_INFO_KEY)),
 									botConfigurationConstants);
@@ -162,7 +162,7 @@ public class QuarterHourlyLookerBot extends Bot {
 						
 						} else if (SystemConstants.SHORT_ENTRY_ACTION.equalsIgnoreCase(actionToTake)) {
 						
-							lifeCycleForBot.enterShortPositionAndPostExitTrade(botDefinition,
+							lifeCycleForBot.enterShortPositionAndPostExitTrade(outstandingBotPositions, botDefinition,
 									ItemInfo.class
 											.cast(itemResult.getConfigParameters().get(SystemConstants.ITEM_INFO_KEY)),
 									botConfigurationConstants);

@@ -9,7 +9,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.stereotype.Service;
 
 import algo.trade.bot.beans.TradeVO;
-import algo.trade.constants.SystemConstants;
 import algo.trade.errors.PositionOpenException;
 
 /**
@@ -36,13 +35,12 @@ public class BasePositionService extends BaseService {
 		BigDecimal result = BigDecimal.ZERO;
 		if (trades != null) {
 			for (TradeVO trade : trades) {
-				BigDecimal sidePrice = SystemConstants.BUY_SIDE.equalsIgnoreCase(side) ? trade.getBuyPrice()
-						: trade.getSellPrice();
-				if (sidePrice != null) {
+				BigDecimal sidePrice = trade.getTradePrice();
+				if (trade.getTradeTime() != null) {
 					totalFiat = totalFiat.add(sidePrice.multiply(trade.getQuantity()));
 					totalAssetQty = totalAssetQty.add(trade.getQuantity());
 				} else {
-					// the position is open
+					// the position is open, and an exit price cannot be computed.
 					throw new PositionOpenException();
 				}
 			}
@@ -65,8 +63,7 @@ public class BasePositionService extends BaseService {
 		BigDecimal totalFiat = BigDecimal.ZERO;
 		if (trades != null) {
 			for (TradeVO trade : trades) {
-				totalFiat = totalFiat.add(((trade.getTradeSide() == SystemConstants.LONG_TRADE ? trade.getBuyPrice()
-						: trade.getSellPrice()).multiply(trade.getQuantity())));
+				totalFiat = totalFiat.add((trade.getTradePrice()).multiply(trade.getQuantity()));
 			}
 		}
 		trades = null;
@@ -76,40 +73,35 @@ public class BasePositionService extends BaseService {
 
 	/**
 	 * Computes total return from all item sets in a given set
-	 * 
 	 * @param trades
-	 * @return
+	 * @return absolute return in fiat for the given set.
 	 * @throws PositionOpenException
 	 *             if unable to perform the operation
 	 */
 	public BigDecimal getTotalReturnFromTradesInList(List<TradeVO> trades) throws PositionOpenException {
-		Map<String, List<TradeVO>> distinctCurrencies = new ConcurrentHashMap<String, List<TradeVO>>();
+		Map<String, List<TradeVO>> distinctItems = new ConcurrentHashMap<String, List<TradeVO>>();
 
 		for (TradeVO trade : trades) {
-			if (distinctCurrencies.get(trade.getSellClientOrderId()) == null) {
-				distinctCurrencies.put(trade.getSellClientOrderId(), new ArrayList<TradeVO>());
+			if (distinctItems.get(trade.getTradeItem()) == null) {
+				distinctItems.put(trade.getTradeItem(), new ArrayList<TradeVO>());
 			}
-			distinctCurrencies.get(trade.getSellClientOrderId()).add(trade);
+			distinctItems.get(trade.getTradeItem()).add(trade);
 		}
 
-		BigDecimal currencyReturn = BigDecimal.ZERO;
+		BigDecimal totalReturn = BigDecimal.ZERO;
 
-		for (String orderSet : distinctCurrencies.keySet()) {
-			BigDecimal buyPriceForSet = this.getWeightedAverageSidePriceForPosition(distinctCurrencies.get(orderSet),
-					SystemConstants.BUY_SIDE);
-			BigDecimal sellPriceForSet = this.getWeightedAverageSidePriceForPosition(distinctCurrencies.get(orderSet),
-					SystemConstants.SELL_SIDE);
-			BigDecimal buyQuantity = this.getTotalFiatInTrade(distinctCurrencies.get(orderSet));
-
-			currencyReturn = currencyReturn.add((sellPriceForSet.subtract(buyPriceForSet)).divide(buyPriceForSet))
-					.multiply(buyQuantity);
+		for (String itemName : distinctItems.keySet()) {
+			for (TradeVO trade : distinctItems.get(itemName)) {
+				totalReturn = totalReturn.add((trade.getTradePrice().multiply(trade.getQuantity())));
+			}
 		}
 
-		return currencyReturn;
+		return totalReturn;
 	}
 
 	/**
 	 * returns total quantity of item in a position
+	 * 
 	 * @param trades
 	 * @return
 	 */

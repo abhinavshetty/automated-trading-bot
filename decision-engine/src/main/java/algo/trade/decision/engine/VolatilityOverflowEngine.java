@@ -56,10 +56,10 @@ public class VolatilityOverflowEngine extends DecisionEngine {
 		if ((localRsi <= ((Integer) engineConfigurationConstants.get("LOWER_RSI_THRESHOLD"))) && currentPrice
 				.compareTo(quarterHourlyBands.getLowerBand().get(quarterHourlyBands.getLowerBand().size() - 1)) < 0) {
 			result.setShouldBotActOnItem(true);
-			
+
 			result.setConfigParameters(new ConcurrentHashMap<String, Object>());
 			result.getConfigParameters().put(SystemConstants.ITEM_INFO_KEY, request.getItemInfo());
-			
+
 			result.setDecisionParameters(new ConcurrentHashMap<String, BigDecimal>());
 			result.getDecisionParameters().put(SystemConstants.COMPARISON_INDEX_KEY, comparisonIndex);
 		}
@@ -126,19 +126,27 @@ public class VolatilityOverflowEngine extends DecisionEngine {
 	@Override
 	public DecisionResponse shouldBotExtendLongPosition(SecondaryActionDecisionQuery request) {
 		DecisionResponse result = constructEmptyResponse();
-		BigDecimal firstEntryPrice = request.getCurrentOutstandingTrades().get(0).getBuyPrice();
-		List<Kline> marketData = request.getMarketData()
-				.get(botConfigurationConstants.get(SystemConstants.EXTENSION_MONITORING_KLINE_KEY));
-		BigDecimal currentPrice = marketData.get(marketData.size() - 1).getClose();
+		BigDecimal entryPrice;
+		try {
+			entryPrice = this.getWeightedAverageSidePriceForPosition(request.getCurrentOutstandingTrades(), SystemConstants.LONG_POSITION);
+			List<Kline> marketData = request.getMarketData()
+					.get(botConfigurationConstants.get(SystemConstants.EXTENSION_MONITORING_KLINE_KEY));
+			BigDecimal currentPrice = marketData.get(marketData.size() - 1).getClose();
 
-		result.setShouldBotActOnItem((firstEntryPrice.multiply(
-				(BigDecimal.ONE.subtract((BigDecimal) engineConfigurationConstants.get("LONG_EXTENSION_THRESHOLD")))))
-						.compareTo(currentPrice) > 0);
-		
-		if (result.isShouldBotActOnItem()) {
-			result.setConfigParameters(new ConcurrentHashMap<String, Object>());
-			result.getConfigParameters().put(SystemConstants.ITEM_INFO_KEY, request.getItemInfo());
+			result.setShouldBotActOnItem((entryPrice.multiply(
+					(BigDecimal.ONE.subtract((BigDecimal) engineConfigurationConstants.get(SystemConstants.LONG_EXTENSION_THRESHOLD_KEY)))))
+							.compareTo(currentPrice) > 0);
+
+			if (result.isShouldBotActOnItem()) {
+				result.setConfigParameters(new ConcurrentHashMap<String, Object>());
+				result.getConfigParameters().put(SystemConstants.ITEM_INFO_KEY, request.getItemInfo());
+			}
+		} catch (PositionOpenException e) {
+			LOG.error("One or more positions do not have buy prices defined. Please check the request for item "
+					+ request.getItemInfo());
+			result.setShouldBotActOnItem(false);
 		}
+		
 
 		return result;
 	}
@@ -151,12 +159,16 @@ public class VolatilityOverflowEngine extends DecisionEngine {
 					.get(botConfigurationConstants.get(SystemConstants.EXTENSION_MONITORING_KLINE_KEY));
 			BigDecimal currentPrice = marketData.get(marketData.size() - 1).getClose();
 			List<TradeVO> currentPosition = request.getCurrentOutstandingTrades();
-			currentPosition.forEach(item -> item.setSellPrice(currentPrice));
+			currentPosition.forEach(item -> {
+				// for exit trades, set price as the current price.
+				if (item.getQuantity().compareTo(BigDecimal.ZERO) < 0) {
+					item.setTradePrice(currentPrice);
+				}});
 
 			BigDecimal unrealizedLoss = this.getTotalReturnFromTradesInList(currentPosition);
 
 			result.setShouldBotActOnItem(unrealizedLoss.compareTo(request.getBot().getCurrentMoney()
-					.multiply((BigDecimal) engineConfigurationConstants.get("LONG_STOP_LOSS_THRESHOLD"))) < 0);
+					.multiply((BigDecimal) engineConfigurationConstants.get(SystemConstants.LONG_STOP_LOSS_THRESHOLD_KEY))) < 0);
 			
 			if (result.isShouldBotActOnItem()) {
 				result.setConfigParameters(new ConcurrentHashMap<String, Object>());
@@ -218,6 +230,7 @@ public class VolatilityOverflowEngine extends DecisionEngine {
 					SystemConstants.BUY_SIDE);
 			result = entryPrice.multiply(
 					BigDecimal.ONE.add((BigDecimal) engineConfigurationConstants.get(SystemConstants.LONG_PROFIT_KEY)));
+			result = result.setScale(request.getItemInfo().getPricePrecision(), RoundingMode.CEILING);
 		} catch (PositionOpenException e) {
 			LOG.error("One or more buy prices could not be read from the request. Please check the request for item : "
 					+ request.getItemInfo());
@@ -237,6 +250,7 @@ public class VolatilityOverflowEngine extends DecisionEngine {
 					SystemConstants.SELL_SIDE);
 			result = entryPrice.multiply(BigDecimal.ONE
 					.subtract((BigDecimal) engineConfigurationConstants.get(SystemConstants.SHORT_PROFIT_KEY)));
+			result = result.setScale(request.getItemInfo().getPricePrecision(), RoundingMode.CEILING);
 		} catch (PositionOpenException e) {
 			LOG.error("One or more sell prices could not be read from the request. Please check the request for item : "
 					+ request.getItemInfo());
@@ -247,8 +261,8 @@ public class VolatilityOverflowEngine extends DecisionEngine {
 
 	@Override
 	protected void initializeBotConfigurationConstants() {
-		botConfigurationConstants.put(SystemConstants.INITIAL_TRADE_MARGIN_KEY, 0.1d);
-		botConfigurationConstants.put(SystemConstants.EXTENSION_TRADE_MARGIN_KEY, 0.1d);
+		botConfigurationConstants.put(SystemConstants.INITIAL_TRADE_MARGIN_KEY, 0.03d);
+		botConfigurationConstants.put(SystemConstants.EXTENSION_TRADE_MARGIN_KEY, 0.03d);
 		botConfigurationConstants.put(SystemConstants.MINIMUM_ITEM_TRADE_HISTORY_DAYS_KEY, 60);
 
 		botConfigurationConstants.put(SystemConstants.ENTRY_MONITORING_KLINE_KEY + "_1", "15m");

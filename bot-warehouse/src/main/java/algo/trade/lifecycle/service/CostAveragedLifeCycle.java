@@ -75,7 +75,7 @@ public class CostAveragedLifeCycle extends LifeCycle {
 		} else {
 			// there are open positions for this item. Evaluate stop-loss or extension
 			// possibilities
-			if (openPositionsForItem.get(0).getTradeSide() == SystemConstants.LONG_TRADE) {
+			if (SystemConstants.LONG_POSITION.equalsIgnoreCase(openPositionsForItem.get(0).getPositionType())) {
 				// open long position: check for close followed by stop loss followed by
 				// extension
 
@@ -83,10 +83,10 @@ public class CostAveragedLifeCycle extends LifeCycle {
 						serverTime)) {
 					LOG.info("The long position in " + itemInfo.getSymbol() + " was closed successfully at a profit.");
 					for (TradeVO trade : openPositionsForItem) {
-						trade.setBuyTime(new Timestamp(serverTime));
+						trade.setTradeTime(new Timestamp(serverTime));
 					}
 					LOG.info("Trade profit : " + this.getTotalReturnFromTradesInList(openPositionsForItem));
-					openPositions.removeIf(item -> item.getTradeItem().equalsIgnoreCase(itemInfo.getSymbol()));
+					logPositionClose(openPositions, itemInfo);
 				} else {
 					Map<String, List<Kline>> correctionData = dataWrapper.getLongCorrectionMarketData(itemInfo, bot,
 							serverTime, config);
@@ -118,10 +118,11 @@ public class CostAveragedLifeCycle extends LifeCycle {
 						serverTime)) {
 					LOG.info("The long position in " + itemInfo.getSymbol() + " was closed successfully at a profit.");
 					for (TradeVO trade : openPositionsForItem) {
-						trade.setBuyTime(new Timestamp(serverTime));
+						trade.setTradeTime(new Timestamp(serverTime));
 					}
 					LOG.info("Trade profit : " + this.getTotalReturnFromTradesInList(openPositionsForItem));
-					openPositions.removeIf(item -> item.getTradeItem().equalsIgnoreCase(itemInfo.getSymbol()));
+					
+					logPositionClose(openPositions, itemInfo);
 				} else {
 					Map<String, List<Kline>> correctionData = dataWrapper.getShortCorrectionMarketData(itemInfo, bot,
 							serverTime, config);
@@ -167,7 +168,7 @@ public class CostAveragedLifeCycle extends LifeCycle {
 	}
 
 	@Override
-	public TradeVO enterLongPositionAndPostExitTrade(BotDefinition bot, ItemInfo itemInfo, Map<String, Object> config)
+	public TradeVO enterLongPositionAndPostExitTrade(List<TradeVO> openPositions, BotDefinition bot, ItemInfo itemInfo, Map<String, Object> config)
 			throws ZeroQuantityOrderedException, MarketDoesNotExistException, DataException {
 		// open a long position via market buy and post a limit sell trade to exit an
 		// opened position.
@@ -185,27 +186,28 @@ public class CostAveragedLifeCycle extends LifeCycle {
 		}
 		BigDecimal valueAtRisk = bot.getCurrentMoney()
 				.multiply(new BigDecimal(config.get(SystemConstants.INITIAL_TRADE_MARGIN_KEY).toString()));
-		BigDecimal quantity = valueAtRisk.divide(currentPrice);
+		BigDecimal quantity = valueAtRisk.divide(currentPrice, itemInfo.getQuantityPrecision(), RoundingMode.FLOOR);
 
+		// if after rounding, the quantity is non zero, act.
 		if (quantity.compareTo(BigDecimal.ZERO) > 0) {
 			// non zero quantity post rounding. perform entry action.
 			entryResult = marketClient.postTrade(currentPrice, quantity, SystemConstants.BUY_SIDE,
 					SystemConstants.MARKET_ORDER, itemInfo, bot);
-			entryResult.setTradeSide(SystemConstants.LONG_TRADE);
+			entryResult.setPositionType(SystemConstants.LONG_POSITION);
 
 			List<TradeVO> entryPosition = new ArrayList<TradeVO>();
 			entryPosition.add(entryResult);
 
 			BigDecimal exitPrice = engineClient.getExitSellPrice(itemInfo, marketData, bot, entryPosition, currentTime);
-			exitPrice = exitPrice.setScale(itemInfo.getPricePrecision(), RoundingMode.CEILING);
 
 			TradeVO exitTrade = marketClient.postTrade(exitPrice, quantity, SystemConstants.SELL_SIDE,
 					SystemConstants.LIMIT_ORDER, itemInfo, bot);
 
-			entryResult.setSellClientOrderId(exitTrade.getSellClientOrderId());
-			entryResult.setSellOrderId(exitTrade.getSellOrderId());
-			entryResult.setSellPrice(exitTrade.getSellPrice());
-
+			entryPosition.add(exitTrade);
+			entryPosition.forEach(item -> item.setPositionType(SystemConstants.LONG_POSITION));
+			
+			openPositions.addAll(entryPosition);
+			
 			entryPosition = null;
 			exitPrice = null;
 			exitTrade = null;
@@ -223,7 +225,7 @@ public class CostAveragedLifeCycle extends LifeCycle {
 	}
 
 	@Override
-	public TradeVO enterShortPositionAndPostExitTrade(BotDefinition bot, ItemInfo itemInfo, Map<String, Object> config)
+	public TradeVO enterShortPositionAndPostExitTrade(List<TradeVO> openPositions, BotDefinition bot, ItemInfo itemInfo, Map<String, Object> config)
 			throws ZeroQuantityOrderedException, MarketDoesNotExistException, DataException {
 		// open a short position via market sell and post limit buy to exit the
 		// position.
@@ -246,8 +248,7 @@ public class CostAveragedLifeCycle extends LifeCycle {
 			// non zero quantity post rounding. perform entry action.
 			entryResult = marketClient.postTrade(currentPrice, quantity, SystemConstants.SELL_SIDE,
 					SystemConstants.MARKET_ORDER, itemInfo, bot);
-			entryResult.setTradeSide(SystemConstants.SHORT_TRADE);
-
+			
 			List<TradeVO> entryPosition = new ArrayList<TradeVO>();
 			entryPosition.add(entryResult);
 
@@ -256,10 +257,9 @@ public class CostAveragedLifeCycle extends LifeCycle {
 			TradeVO exitTrade = marketClient.postTrade(exitPrice, quantity, SystemConstants.BUY_SIDE,
 					SystemConstants.LIMIT_ORDER, itemInfo, bot);
 
-			entryResult.setBuyClientOrderId(exitTrade.getBuyClientOrderId());
-			entryResult.setBuyOrderId(exitTrade.getBuyOrderId());
-			entryResult.setBuyPrice(exitTrade.getBuyPrice());
-
+			entryPosition.add(exitTrade);
+			entryPosition.forEach(item -> item.setPositionType(SystemConstants.SHORT_POSITION));
+			
 			entryPosition = null;
 			exitPrice = null;
 			exitTrade = null;
@@ -277,7 +277,7 @@ public class CostAveragedLifeCycle extends LifeCycle {
 	}
 
 	@Override
-	public TradeVO extendLongPosition(ItemInfo itemInfo, List<TradeVO> currentPosition, BotDefinition bot,
+	public TradeVO extendLongPosition(ItemInfo itemInfo, List<TradeVO> openPositions, BotDefinition bot,
 			Map<String, Object> config)
 			throws ZeroQuantityOrderedException, MarketDoesNotExistException, DataException {
 		// extends an open long position via market buy and post a limit sell trade to
@@ -303,27 +303,27 @@ public class CostAveragedLifeCycle extends LifeCycle {
 			// non zero quantity post rounding. perform entry action.
 			extensionResult = marketClient.postTrade(currentPrice, quantity, SystemConstants.BUY_SIDE,
 					SystemConstants.MARKET_ORDER, itemInfo, bot);
-			extensionResult.setTradeSide(SystemConstants.LONG_TRADE);
 
-			TradeVO openSellOrder = currentPosition.get(currentPosition.size() - 1);
-			currentPosition.add(extensionResult);
+			TradeVO openSellOrder = openPositions.get(openPositions.size() - 1);
+			openPositions.add(extensionResult);
 
 			marketClient.cancelTrade(bot, openSellOrder, currentTime);
+			openPositions.removeIf(item -> item.getTradeOrderId().equals(openSellOrder.getTradeOrderId()));
 
-			BigDecimal exitPrice = engineClient.getExitSellPrice(itemInfo, marketData, bot, currentPosition,
+			BigDecimal exitPrice = engineClient.getExitSellPrice(itemInfo, marketData, bot, openPositions,
 					currentTime);
-			BigDecimal exitQuantity = this.getTotalQuantityInPosition(currentPosition);
+			BigDecimal exitQuantity = this.getTotalQuantityInPosition(openPositions);
 
 			TradeVO exitTrade = marketClient.postTrade(exitPrice, exitQuantity, SystemConstants.SELL_SIDE,
 					SystemConstants.LIMIT_ORDER, itemInfo, bot);
+			exitTrade.setPositionType(SystemConstants.LONG_POSITION);
+			
+			openPositions.add(exitTrade);
 
-			extensionResult.setSellClientOrderId(exitTrade.getSellClientOrderId());
-			extensionResult.setSellOrderId(exitTrade.getSellOrderId());
-			extensionResult.setSellPrice(exitPrice);
-
-			currentPosition = null;
+			openPositions = null;
 			exitPrice = null;
 			exitTrade = null;
+			exitQuantity = null;
 		} else {
 			// zero quantity being bought post rounding. Cannot perform operation for this
 			// item. Throw an exception.
@@ -338,7 +338,7 @@ public class CostAveragedLifeCycle extends LifeCycle {
 	}
 
 	@Override
-	public TradeVO extendShortPosition(ItemInfo itemInfo, List<TradeVO> currentPosition, BotDefinition bot,
+	public TradeVO extendShortPosition(ItemInfo itemInfo, List<TradeVO> openPositions, BotDefinition bot,
 			Map<String, Object> config)
 			throws ZeroQuantityOrderedException, MarketDoesNotExistException, DataException {
 		// extends an open long position via market buy and post a limit sell trade to
@@ -365,24 +365,22 @@ public class CostAveragedLifeCycle extends LifeCycle {
 			// non zero quantity post rounding. perform entry action.
 			extensionResult = marketClient.postTrade(currentPrice, quantity, SystemConstants.SELL_SIDE,
 					SystemConstants.MARKET_ORDER, itemInfo, bot);
-			TradeVO openBuyOrder = currentPosition.get(currentPosition.size() - 1);
-			currentPosition.add(extensionResult);
+			TradeVO openBuyOrder = openPositions.get(openPositions.size() - 1);
+			openPositions.add(extensionResult);
 
 			marketClient.cancelTrade(bot, openBuyOrder, currentTime);
 
-			BigDecimal exitPrice = engineClient.getExitBuyPrice(itemInfo, marketData, bot, currentPosition,
+			BigDecimal exitPrice = engineClient.getExitBuyPrice(itemInfo, marketData, bot, openPositions,
 					currentTime);
 			exitPrice = exitPrice.setScale(itemInfo.getPricePrecision(), RoundingMode.CEILING);
-			BigDecimal exitQuantity = this.getTotalQuantityInPosition(currentPosition);
+			BigDecimal exitQuantity = this.getTotalQuantityInPosition(openPositions);
 
 			TradeVO exitTrade = marketClient.postTrade(exitPrice, exitQuantity, SystemConstants.BUY_SIDE,
 					SystemConstants.LIMIT_ORDER, itemInfo, bot);
-
-			extensionResult.setBuyClientOrderId(exitTrade.getBuyClientOrderId());
-			extensionResult.setBuyOrderId(exitTrade.getBuyOrderId());
-			extensionResult.setBuyPrice(exitPrice);
-
-			currentPosition = null;
+			exitTrade.setPositionType(SystemConstants.LONG_POSITION);
+			
+			openPositions.add(exitTrade);
+			openPositions = null;
 			exitPrice = null;
 			exitTrade = null;
 		} else {
@@ -458,6 +456,13 @@ public class CostAveragedLifeCycle extends LifeCycle {
 		openSellOrder = null;
 
 		return stopLossResult;
+	}
+
+	@Override
+	public void logPositionClose(List<TradeVO> openPositions, ItemInfo itemInfo) {
+
+		openPositions.removeIf(item -> item.getTradeItem().equalsIgnoreCase(itemInfo.getSymbol()));
+		
 	}
 
 }

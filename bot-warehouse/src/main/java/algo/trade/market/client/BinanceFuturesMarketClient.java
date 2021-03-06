@@ -112,15 +112,11 @@ public class BinanceFuturesMarketClient extends MarketInterface {
 					for (Order order : openOrders) {
 						TradeVO trade = new TradeVO();
 						trade.setTradeItem(position.getSymbol());
-						trade.setBuyPrice(position.getEntryPrice());
-						trade.setBuyTime(new Timestamp(System.currentTimeMillis()));
-						trade.setBuyClientOrderId(getRandomOrderId());
-						trade.setBuyOrderId(Long.valueOf(getRandomOrderId()));
+						trade.setTradePrice(position.getEntryPrice());
+						trade.setTradeTime(new Timestamp(System.currentTimeMillis()));
+						trade.setTradeClientOrderId(getRandomOrderId());
+						trade.setTradeOrderId(Long.valueOf(getRandomOrderId()));
 						trade.setQuantity(order.getOrigQty());
-						trade.setSellClientOrderId(order.getClientOrderId());
-						trade.setSellOrderId(order.getOrderId());
-						trade.setSellPrice(order.getPrice());
-						trade.setTradeSide(SystemConstants.LONG_TRADE);
 						trades.add(trade);
 
 						trade = null;
@@ -131,15 +127,11 @@ public class BinanceFuturesMarketClient extends MarketInterface {
 					for (Order order : openOrders) {
 						TradeVO trade = new TradeVO();
 						trade.setTradeItem(position.getSymbol());
-						trade.setSellPrice(position.getEntryPrice());
-						trade.setSellTime(new Timestamp(System.currentTimeMillis()));
-						trade.setSellClientOrderId(getRandomOrderId());
-						trade.setSellOrderId(Long.valueOf(getRandomOrderId()));
+						trade.setTradePrice(position.getEntryPrice());
+						trade.setTradeTime(new Timestamp(System.currentTimeMillis()));
+						trade.setTradeClientOrderId(getRandomOrderId());
+						trade.setTradeOrderId(Long.valueOf(getRandomOrderId()));
 						trade.setQuantity(order.getOrigQty());
-						trade.setBuyClientOrderId(order.getClientOrderId());
-						trade.setBuyOrderId(order.getOrderId());
-						trade.setBuyPrice(order.getPrice());
-						trade.setTradeSide(SystemConstants.SHORT_TRADE);
 						trades.add(trade);
 
 						trade = null;
@@ -168,9 +160,7 @@ public class BinanceFuturesMarketClient extends MarketInterface {
 	@Override
 	public Boolean cancelTrade(BotDefinition bot, TradeVO trade, long serverTime) {
 		// cancel a pre-existing order
-		getClient().cancelOrder(trade.getTradeItem(),
-				trade.getTradeSide() == SystemConstants.LONG_TRADE ? trade.getSellOrderId() : trade.getBuyOrderId(),
-				null);
+		getClient().cancelOrder(trade.getTradeItem(), trade.getTradeOrderId(), null);
 
 		return true;
 	}
@@ -223,10 +213,10 @@ public class BinanceFuturesMarketClient extends MarketInterface {
 	}
 
 	@Override
-	public TradeVO postTrade(BigDecimal price, BigDecimal quantity, String position, String type, ItemInfo itemInfo,
+	public TradeVO postTrade(BigDecimal price, BigDecimal quantity, String position, String orderType, ItemInfo itemInfo,
 			BotDefinition bot) throws DataException {
 		Order order;
-		
+
 		if (price != null && quantity != null) {
 			price.setScale(itemInfo.getPricePrecision(), RoundingMode.CEILING);
 			quantity.setScale(itemInfo.getQuantityPrecision(), RoundingMode.FLOOR);
@@ -234,16 +224,17 @@ public class BinanceFuturesMarketClient extends MarketInterface {
 			throw new DataException();
 		}
 
-		if (type.equals(SystemConstants.LIMIT_ORDER)) {
+		if (orderType.equals(SystemConstants.LIMIT_ORDER)) {
 			// limit order submitted. Only post.
 			order = getClient().postOrder(itemInfo.getSymbol(),
-					position.equalsIgnoreCase(SystemConstants.SELL_SIDE) ? OrderSide.SELL : OrderSide.BUY, PositionSide.BOTH, OrderType.LIMIT,
-					TimeInForce.GTC, quantity.toPlainString(), price.toPlainString(), null, null, null, null);
+					position.equalsIgnoreCase(SystemConstants.SELL_SIDE) ? OrderSide.SELL : OrderSide.BUY,
+					PositionSide.BOTH, OrderType.LIMIT, TimeInForce.GTC, quantity.toPlainString(),
+					price.toPlainString(), null, null, null, null);
 		} else {
 			// market order has been sent. first post the order
 			order = getClient().postOrder(itemInfo.getSymbol(),
-					position.equalsIgnoreCase(SystemConstants.SELL_SIDE) ? OrderSide.SELL : OrderSide.BUY, PositionSide.BOTH, OrderType.MARKET, null,
-					quantity.toPlainString(), null, null, null, null, null);
+					position.equalsIgnoreCase(SystemConstants.SELL_SIDE) ? OrderSide.SELL : OrderSide.BUY,
+					PositionSide.BOTH, OrderType.MARKET, null, quantity.toPlainString(), null, null, null, null, null);
 
 			final long entryOrderId = order.getOrderId();
 			List<MyTrade> accountTrades = client.getAccountTrades(itemInfo.getSymbol(), null, null, null, 2);
@@ -255,34 +246,26 @@ public class BinanceFuturesMarketClient extends MarketInterface {
 		}
 
 		TradeVO result = new TradeVO();
-		result.setQuantity(quantity);
 		result.setBotName(bot.getBotName());
 		result.setStrategyName(bot.getStrategyName());
 		result.setLifeCycleName(bot.getLifeCycleName());
 		result.setMarketName(bot.getMarketName());
 		result.setTradeItem(itemInfo.getSymbol());
-
+		result.setTradeClientOrderId(order.getClientOrderId());
+		result.setTradeOrderId(order.getOrderId());
+		result.setTradePrice(order.getPrice());
+		
+		if (orderType.contains(SystemConstants.MARKET_ORDER)) {
+			// market order was placed. set
+			result.setTradeTime(new Timestamp(order.getUpdateTime()));
+		}
+		
 		if (SystemConstants.BUY_SIDE.equalsIgnoreCase(position)) {
 			// buy side trade was placed.
-			result.setBuyClientOrderId(order.getClientOrderId());
-			result.setBuyOrderId(order.getOrderId());
-			result.setBuyPrice(order.getPrice());
-			result.setQuantity(quantity);
-			if (type.contains(SystemConstants.MARKET_ORDER)) {
-				// market order was placed. set
-				result.setBuyTime(new Timestamp(order.getUpdateTime()));
-			}
-
+			result.setQuantity(quantity.abs());
 		} else if (SystemConstants.SELL_SIDE.equalsIgnoreCase(position)) {
 			// sell side trade was placed.
-			result.setSellClientOrderId(order.getClientOrderId());
-			result.setSellOrderId(order.getOrderId());
-			result.setSellPrice(order.getPrice());
-			result.setQuantity(quantity);
-			if (type.contains(SystemConstants.MARKET_ORDER)) {
-				// market order was placed. set
-				result.setSellTime(new Timestamp(order.getUpdateTime()));
-			}
+			result.setQuantity((quantity.abs()).negate());	
 		} else {
 			throw new DataException();
 		}
@@ -293,12 +276,9 @@ public class BinanceFuturesMarketClient extends MarketInterface {
 	@Override
 	public boolean isTradeFilled(BotDefinition bot, TradeVO trade, long serverTime) throws DataException {
 		Order order;
-		if (trade.getTradeSide() == SystemConstants.LONG_TRADE) {
-			order = client.getOrder(trade.getTradeItem(),
-					trade.getBuyTime() == null ? trade.getBuyOrderId() : trade.getSellOrderId(), null);
-		} else if (trade.getTradeSide() == SystemConstants.SHORT_TRADE) {
-			order = client.getOrder(trade.getTradeItem(),
-					trade.getSellTime() == null ? trade.getSellOrderId() : trade.getBuyOrderId(), null);
+		order = client.getOrder(trade.getTradeItem(), trade.getTradeOrderId(), null);
+		if (trade.getTradeOrderId() != null) {
+			order = client.getOrder(trade.getTradeItem(), trade.getTradeOrderId(), null);
 		} else {
 			throw new DataException();
 		}

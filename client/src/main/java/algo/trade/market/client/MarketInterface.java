@@ -72,13 +72,13 @@ public abstract class MarketInterface extends BaseService{
 	 * @param price
 	 * @param quantity
 	 * @param position
-	 * @param type
+	 * @param orderType
 	 * @param tickerInfo
 	 * @param bot
 	 * @return
 	 * @throws DataException
 	 */
-	public abstract TradeVO postTrade(BigDecimal price, BigDecimal quantity, String position, String type,
+	public abstract TradeVO postTrade(BigDecimal price, BigDecimal quantity, String position, String orderType,
 			ItemInfo tickerInfo, BotDefinition bot) throws DataException;
 
 	/**
