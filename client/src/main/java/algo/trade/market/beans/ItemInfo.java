@@ -6,7 +6,7 @@ import java.math.BigDecimal;
 /**
  * Contains information relevant to trading perspective
  * use currentlyInTrade to track currency execution
- * @author Abhinav
+ * @author Abhinav Shetty
  *
  */
 public class ItemInfo implements Serializable {

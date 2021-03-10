@@ -41,8 +41,7 @@ public class QuarterHourlyLookerBot extends Bot {
 			}
 
 			// initialize positions for the bot
-			outstandingBotPositions = marketClient.getAccountData(botDefinition);
-			
+
 		} catch (MarketDoesNotExistException e) {
 			LOG.error("The market specified in the definition does not exist.");
 		}
@@ -81,6 +80,7 @@ public class QuarterHourlyLookerBot extends Bot {
 
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public void startBot() {
 		// Does the actions specified
@@ -99,7 +99,7 @@ public class QuarterHourlyLookerBot extends Bot {
 					itemResult = null;
 				}
 
-				LOG.info("Performed checks for " + itemResults.size() + " items."); 
+				LOG.info("Performed checks for " + itemResults.size() + " items.");
 
 				// remove negative results
 				itemResults.removeIf(item -> !item.isShouldBotActOnItem());
@@ -135,60 +135,76 @@ public class QuarterHourlyLookerBot extends Bot {
 						changeMagnitude = changeMagnitude.subList(changeMagnitude.size() - availableSpots - 1,
 								changeMagnitude.size() - 1);
 					}
+					Map<String, List<TradeVO>> allUpdatedPositions = new ConcurrentHashMap<String, List<TradeVO>>();
 
 					for (DecisionResponse itemResult : itemResults) {
 						String actionToTake = itemResult.getConfigParameters()
 								.get(SystemConstants.DECISION_TAKING_ACTION_KEY).toString();
+						Map<String, List<TradeVO>> updatedPositions = null;
+						
 						if (SystemConstants.LONG_ENTRY_ACTION.equalsIgnoreCase(actionToTake)) {
-							
-							lifeCycleForBot.enterLongPositionAndPostExitTrade(outstandingBotPositions, botDefinition,
-									ItemInfo.class
-											.cast(itemResult.getConfigParameters().get(SystemConstants.ITEM_INFO_KEY)),
-									botConfigurationConstants);
+							ItemInfo itemInfo = objectMapper.convertValue(
+									itemResult.getConfigParameters().get(SystemConstants.ITEM_INFO_KEY),
+									ItemInfo.class);
+							updatedPositions = lifeCycleForBot.enterLongPositionAndPostExitTrade(tradeSets.get(itemInfo.getSymbol()), botDefinition,
+									itemInfo, botConfigurationConstants);
 							
 						} else if (SystemConstants.LONG_EXTEND_ACTION.equalsIgnoreCase(actionToTake)) {
-							
-							ItemInfo itemInfo = ItemInfo.class
-									.cast(itemResult.getConfigParameters().get(SystemConstants.ITEM_INFO_KEY));
-							lifeCycleForBot.extendLongPosition(itemInfo, tradeSets.get(itemInfo.getSymbol()),
+
+							ItemInfo itemInfo = objectMapper.convertValue(
+									itemResult.getConfigParameters().get(SystemConstants.ITEM_INFO_KEY),
+									ItemInfo.class);
+							updatedPositions = lifeCycleForBot.extendLongPosition(itemInfo, tradeSets.get(itemInfo.getSymbol()),
 									botDefinition, botConfigurationConstants);
-						
+
 						} else if (SystemConstants.LONG_STOP_LOSS_ACTION.equalsIgnoreCase(actionToTake)) {
-						
-							ItemInfo itemInfo = ItemInfo.class
-									.cast(itemResult.getConfigParameters().get(SystemConstants.ITEM_INFO_KEY));
-							lifeCycleForBot.stopLossLongPosition(itemInfo, tradeSets.get(itemInfo.getSymbol()),
+
+							ItemInfo itemInfo = objectMapper.convertValue(
+									itemResult.getConfigParameters().get(SystemConstants.ITEM_INFO_KEY),
+									ItemInfo.class);
+							updatedPositions = lifeCycleForBot.stopLossLongPosition(itemInfo, tradeSets.get(itemInfo.getSymbol()),
 									botDefinition, botConfigurationConstants);
-						
+
 						} else if (SystemConstants.SHORT_ENTRY_ACTION.equalsIgnoreCase(actionToTake)) {
-						
-							lifeCycleForBot.enterShortPositionAndPostExitTrade(outstandingBotPositions, botDefinition,
-									ItemInfo.class
-											.cast(itemResult.getConfigParameters().get(SystemConstants.ITEM_INFO_KEY)),
-									botConfigurationConstants);
-						
+							ItemInfo itemInfo = objectMapper.convertValue(
+									itemResult.getConfigParameters().get(SystemConstants.ITEM_INFO_KEY),
+									ItemInfo.class);
+							updatedPositions = lifeCycleForBot.enterShortPositionAndPostExitTrade(tradeSets.get(itemInfo.getSymbol()), botDefinition,
+									itemInfo, botConfigurationConstants);
+
 						} else if (SystemConstants.SHORT_EXTEND_ACTION.equalsIgnoreCase(actionToTake)) {
-						
-							ItemInfo itemInfo = ItemInfo.class
-									.cast(itemResult.getConfigParameters().get(SystemConstants.ITEM_INFO_KEY));
-							lifeCycleForBot.extendShortPosition(itemInfo, tradeSets.get(itemInfo.getSymbol()),
+
+							ItemInfo itemInfo = objectMapper.convertValue(
+									itemResult.getConfigParameters().get(SystemConstants.ITEM_INFO_KEY),
+									ItemInfo.class);
+							updatedPositions = lifeCycleForBot.extendShortPosition(itemInfo, tradeSets.get(itemInfo.getSymbol()),
 									botDefinition, botConfigurationConstants);
-						
+
 						} else if (SystemConstants.SHORT_STOP_LOSS_ACTION.equalsIgnoreCase(actionToTake)) {
-						
-							ItemInfo itemInfo = ItemInfo.class
-									.cast(itemResult.getConfigParameters().get(SystemConstants.ITEM_INFO_KEY));
-							lifeCycleForBot.stopLossShortPosition(itemInfo, tradeSets.get(itemInfo.getSymbol()),
+
+							ItemInfo itemInfo = objectMapper.convertValue(
+									itemResult.getConfigParameters().get(SystemConstants.ITEM_INFO_KEY),
+									ItemInfo.class);
+							updatedPositions = lifeCycleForBot.stopLossShortPosition(itemInfo, tradeSets.get(itemInfo.getSymbol()),
 									botDefinition, botConfigurationConstants);
-						
+
+						} else if (SystemConstants.POSITION_CLOSE_ACTION.equalsIgnoreCase(actionToTake)) {
+							// position close action. log changes to external storage.
+							updatedPositions = objectMapper.convertValue(
+									itemResult.getConfigParameters().get(SystemConstants.UPDATED_POSITIONS_KEY),
+									Map.class);
 						}
+						allUpdatedPositions.putAll(updatedPositions);
+						updatedPositions = null;
 					}
 					
+					logPositionChanges(allUpdatedPositions);
+
 					changeMagnitude = null;
 					tradeSets = null;
 				} else {
 					// no actions can be taken. Skip future executions.
-					
+
 				}
 			} catch (Exception e) {
 				// TODO: handle exception
@@ -210,6 +226,11 @@ public class QuarterHourlyLookerBot extends Bot {
 	@Override
 	public String getBotName() {
 		return NAME;
+	}
+
+	@Override
+	public void logPositionChanges(Map<String, List<TradeVO>> updatedPositions) {
+		// logs position changes to external storage.
 	}
 
 }

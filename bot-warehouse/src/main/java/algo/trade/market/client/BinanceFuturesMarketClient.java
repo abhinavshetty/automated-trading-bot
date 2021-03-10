@@ -104,43 +104,62 @@ public class BinanceFuturesMarketClient extends MarketInterface {
 		positions.removeIf(item -> item.getPositionAmt().compareTo(BigDecimal.ZERO) == 0);
 
 		for (PositionRisk position : positions) {
-			if (!(position.getPositionAmt().compareTo(BigDecimal.ZERO) == 0)) {
-				List<Order> openOrders = getClient().getOpenOrders(position.getSymbol());
+			List<Order> openOrders = getClient().getOpenOrders(position.getSymbol());
 
-				if (position.getPositionAmt().compareTo(BigDecimal.ZERO) > 0) {
-					// long position
-					for (Order order : openOrders) {
-						TradeVO trade = new TradeVO();
-						trade.setTradeItem(position.getSymbol());
-						trade.setTradePrice(position.getEntryPrice());
-						trade.setTradeTime(new Timestamp(System.currentTimeMillis()));
-						trade.setTradeClientOrderId(getRandomOrderId());
-						trade.setTradeOrderId(Long.valueOf(getRandomOrderId()));
-						trade.setQuantity(order.getOrigQty());
-						trades.add(trade);
+			if (position.getPositionAmt().compareTo(BigDecimal.ZERO) > 0) {
+				// entry position trade
+				TradeVO entryTrade = new TradeVO();
+				entryTrade.setTradeItem(position.getSymbol());
+				entryTrade.setTradePrice(position.getEntryPrice());
+				entryTrade.setTradeTime(new Timestamp(System.currentTimeMillis()));
+				entryTrade.setTradeClientOrderId(getRandomOrderId());
+				entryTrade.setTradeOrderId(Long.valueOf(getRandomOrderId()));
+				entryTrade.setQuantity(position.getPositionAmt());
+				entryTrade.setPositionType(SystemConstants.LONG_POSITION);
+				trades.add(entryTrade);
+				
+				// long position
+				for (Order order : openOrders) {
+					TradeVO trade = new TradeVO();
+					trade.setTradeItem(position.getSymbol());
+					trade.setTradePrice(position.getEntryPrice());
+					trade.setTradeClientOrderId(getRandomOrderId());
+					trade.setTradeOrderId(Long.valueOf(getRandomOrderId()));
+					trade.setQuantity(order.getOrigQty());
+					trades.add(trade);
 
-						trade = null;
-					}
+					trade = null;
+				}
 
-				} else {
-					// short position
-					for (Order order : openOrders) {
-						TradeVO trade = new TradeVO();
-						trade.setTradeItem(position.getSymbol());
-						trade.setTradePrice(position.getEntryPrice());
-						trade.setTradeTime(new Timestamp(System.currentTimeMillis()));
-						trade.setTradeClientOrderId(getRandomOrderId());
-						trade.setTradeOrderId(Long.valueOf(getRandomOrderId()));
-						trade.setQuantity(order.getOrigQty());
-						trades.add(trade);
+			} else {
+				// short position
+				TradeVO entryTrade = new TradeVO();
+				entryTrade.setTradeItem(position.getSymbol());
+				entryTrade.setTradePrice(position.getEntryPrice());
+				entryTrade.setTradeTime(new Timestamp(System.currentTimeMillis()));
+				entryTrade.setTradeClientOrderId(getRandomOrderId());
+				entryTrade.setTradeOrderId(Long.valueOf(getRandomOrderId()));
+				entryTrade.setQuantity(position.getPositionAmt());
+				entryTrade.setPositionType(SystemConstants.SHORT_POSITION);
+				trades.add(entryTrade);
+				
+				for (Order order : openOrders) {
+					TradeVO trade = new TradeVO();
+					trade.setTradeItem(position.getSymbol());
+					trade.setTradePrice(position.getEntryPrice());
+					trade.setTradeTime(new Timestamp(System.currentTimeMillis()));
+					trade.setTradeClientOrderId(getRandomOrderId());
+					trade.setTradeOrderId(Long.valueOf(getRandomOrderId()));
+					trade.setQuantity(order.getOrigQty());
+					trades.add(trade);
 
-						trade = null;
-					}
+					trade = null;
 				}
 			}
 		}
 
 		return trades;
+
 	}
 
 	@Override
@@ -213,8 +232,8 @@ public class BinanceFuturesMarketClient extends MarketInterface {
 	}
 
 	@Override
-	public TradeVO postTrade(BigDecimal price, BigDecimal quantity, String position, String orderType, ItemInfo itemInfo,
-			BotDefinition bot) throws DataException {
+	public TradeVO postTrade(BigDecimal price, BigDecimal quantity, String position, String orderType,
+			ItemInfo itemInfo, BotDefinition bot) throws DataException {
 		Order order;
 
 		if (price != null && quantity != null) {
@@ -254,18 +273,18 @@ public class BinanceFuturesMarketClient extends MarketInterface {
 		result.setTradeClientOrderId(order.getClientOrderId());
 		result.setTradeOrderId(order.getOrderId());
 		result.setTradePrice(order.getPrice());
-		
+
 		if (orderType.contains(SystemConstants.MARKET_ORDER)) {
 			// market order was placed. set
 			result.setTradeTime(new Timestamp(order.getUpdateTime()));
 		}
-		
+
 		if (SystemConstants.BUY_SIDE.equalsIgnoreCase(position)) {
 			// buy side trade was placed.
 			result.setQuantity(quantity.abs());
 		} else if (SystemConstants.SELL_SIDE.equalsIgnoreCase(position)) {
 			// sell side trade was placed.
-			result.setQuantity((quantity.abs()).negate());	
+			result.setQuantity((quantity.abs()).negate());
 		} else {
 			throw new DataException();
 		}

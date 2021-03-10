@@ -59,9 +59,11 @@ public class VolatilityOverflowEngine extends DecisionEngine {
 
 			result.setConfigParameters(new ConcurrentHashMap<String, Object>());
 			result.getConfigParameters().put(SystemConstants.ITEM_INFO_KEY, request.getItemInfo());
-
+			result.getConfigParameters().put(SystemConstants.DECISION_TAKING_ACTION_KEY, SystemConstants.LONG_ENTRY_ACTION);
+			
 			result.setDecisionParameters(new ConcurrentHashMap<String, BigDecimal>());
 			result.getDecisionParameters().put(SystemConstants.COMPARISON_INDEX_KEY, comparisonIndex);
+			
 		}
 		return result;
 	}
@@ -140,6 +142,7 @@ public class VolatilityOverflowEngine extends DecisionEngine {
 			if (result.isShouldBotActOnItem()) {
 				result.setConfigParameters(new ConcurrentHashMap<String, Object>());
 				result.getConfigParameters().put(SystemConstants.ITEM_INFO_KEY, request.getItemInfo());
+				result.getConfigParameters().put(SystemConstants.DECISION_TAKING_ACTION_KEY, SystemConstants.LONG_EXTEND_ACTION);
 			}
 		} catch (PositionOpenException e) {
 			LOG.error("One or more positions do not have buy prices defined. Please check the request for item "
@@ -271,6 +274,7 @@ public class VolatilityOverflowEngine extends DecisionEngine {
 
 		botConfigurationConstants.put(SystemConstants.EXTENSION_MONITORING_KLINE_KEY, "15m");
 		botConfigurationConstants.put(SystemConstants.EXTENSION_MONITORING_WINDOW_HOURS_KEY, 10);
+		botConfigurationConstants.put(SystemConstants.MAX_PORTFOLIO_SIZE_KEY, 3);
 	}
 
 	@Override

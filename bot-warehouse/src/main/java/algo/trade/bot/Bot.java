@@ -115,4 +115,9 @@ public abstract class Bot extends BaseService implements Callable<Boolean>{
 		this.botConfigurationConstants = botConfigurationConstants;
 	}
 
+	public void logPositionChanges(Map<String, List<TradeVO>> updatedPositions) {
+		// TODO Auto-generated method stub
+		
+	}
+
 }

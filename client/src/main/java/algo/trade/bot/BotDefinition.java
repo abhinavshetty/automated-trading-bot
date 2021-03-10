@@ -20,6 +20,7 @@ public class BotDefinition {
 	private BigDecimal currentMoney;
 	private String fiatCurrency;
 	private Date startTime;
+	private Date endTime;
 	private String status;
 	
 	
@@ -153,5 +154,19 @@ public class BotDefinition {
 			return false;
 		}
 		return true;
+	}
+
+	/**
+	 * @return the endTime
+	 */
+	public Date getEndTime() {
+		return endTime;
+	}
+
+	/**
+	 * @param endTime the endTime to set
+	 */
+	public void setEndTime(Date endTime) {
+		this.endTime = endTime;
 	}
 }

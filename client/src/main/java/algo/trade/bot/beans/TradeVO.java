@@ -18,19 +18,21 @@ public class TradeVO implements Comparable<TradeVO>, Serializable{
 	private static final long serialVersionUID = 3847377202664970222L;
 	
 	private int id;
+	private String botName;
 	private String marketName;
-	private String positionType;
 	private String strategyName;
 	private String lifeCycleName;
-	private String botName;
+	private String baseCurrency;
 	private String tradeItem;
+	
 	private BigDecimal tradePrice;
+	private Long tradeOrderId;
+	private String tradeClientOrderId;
 	private Timestamp tradeTime;
 	private BigDecimal quantity;
-	private int tradeType;
-
-	private String tradeClientOrderId;
-	private Long tradeOrderId;
+	
+	private String positionType;
+	private Boolean isPositionClosed;
 
 	/**
 	 * No Parameter constructor for dynamic generation
@@ -213,7 +215,6 @@ public class TradeVO implements Comparable<TradeVO>, Serializable{
 		result = prime * result + ((tradeItem == null) ? 0 : tradeItem.hashCode());
 		result = prime * result + ((tradeOrderId == null) ? 0 : tradeOrderId.hashCode());
 		result = prime * result + ((tradePrice == null) ? 0 : tradePrice.hashCode());
-		result = prime * result + tradeType;
 		return result;
 	}
 
@@ -302,24 +303,35 @@ public class TradeVO implements Comparable<TradeVO>, Serializable{
 		} else if (!tradePrice.equals(other.tradePrice)) {
 			return false;
 		}
-		if (tradeType != other.tradeType) {
-			return false;
-		}
 		return true;
 	}
 
 	/**
-	 * @return the tradeType
+	 * @return the baseCurrency
 	 */
-	public int getTradeType() {
-		return tradeType;
+	public String getBaseCurrency() {
+		return baseCurrency;
 	}
 
 	/**
-	 * @param tradeType the tradeType to set
+	 * @param baseCurrency the baseCurrency to set
 	 */
-	public void setTradeType(int tradeType) {
-		this.tradeType = tradeType;
+	public void setBaseCurrency(String baseCurrency) {
+		this.baseCurrency = baseCurrency;
+	}
+
+	/**
+	 * @return the isPositionClosed
+	 */
+	public Boolean getIsPositionClosed() {
+		return isPositionClosed;
+	}
+
+	/**
+	 * @param isPositionClosed the isPositionClosed to set
+	 */
+	public void setIsPositionClosed(Boolean isPositionClosed) {
+		this.isPositionClosed = isPositionClosed;
 	}
 
 }

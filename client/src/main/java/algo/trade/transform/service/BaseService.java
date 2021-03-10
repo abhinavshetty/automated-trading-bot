@@ -5,6 +5,8 @@ import javax.annotation.PostConstruct;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 /**
  * Base service - implements common logger
  * @author Abhinav Shetty
@@ -13,6 +15,8 @@ import org.apache.logging.log4j.Logger;
 public abstract class BaseService {
 
 	protected Logger LOG;
+	
+	protected ObjectMapper objectMapper = new ObjectMapper();
 	
 	@PostConstruct()
 	protected Logger LOGGER() {

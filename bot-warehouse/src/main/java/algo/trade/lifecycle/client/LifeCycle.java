@@ -34,6 +34,12 @@ public abstract class LifeCycle extends BasePositionService {
 
 	@Autowired
 	protected DecisionEngineClient engineClient;
+	
+	protected DecisionResponse constructEmptyResponse() {
+		DecisionResponse result = new DecisionResponse();
+		result.setShouldBotActOnItem(false);
+		return result;
+	}
 
 	/**
 	 * returns unique identifier for implementation
@@ -44,16 +50,17 @@ public abstract class LifeCycle extends BasePositionService {
 
 	/**
 	 * Starts monitor for the item
-	 * 
 	 * @param itemInfo
 	 * @param bot
-	 * @return DecisionResponse
+	 * @param allOpenPositions
+	 * @param config
+	 * @return
 	 * @throws MarketDoesNotExistException
 	 * @throws DataException
 	 * @throws PositionOpenException
 	 */
 	public abstract DecisionResponse performMonitorOperationForItem(ItemInfo itemInfo, BotDefinition bot,
-			List<TradeVO> openPositions, Map<String, Object> config)
+			List<TradeVO> allOpenPositions, Map<String, Object> config)
 			throws MarketDoesNotExistException, DataException, PositionOpenException;
 
 	/**
@@ -67,7 +74,7 @@ public abstract class LifeCycle extends BasePositionService {
 	 * @throws MarketDoesNotExistException
 	 * @throws DataException
 	 */
-	public abstract TradeVO enterLongPositionAndPostExitTrade(List<TradeVO> openPositions, BotDefinition bot, ItemInfo itemInfo,
+	public abstract Map<String, List<TradeVO>> enterLongPositionAndPostExitTrade(List<TradeVO> openPositions, BotDefinition bot, ItemInfo itemInfo,
 			Map<String, Object> config) throws ZeroQuantityOrderedException, MarketDoesNotExistException, DataException;
 
 	/**
@@ -81,7 +88,7 @@ public abstract class LifeCycle extends BasePositionService {
 	 * @throws MarketDoesNotExistException
 	 * @throws DataException
 	 */
-	public abstract TradeVO enterShortPositionAndPostExitTrade(List<TradeVO> openPositions, BotDefinition bot, ItemInfo itemInfo,
+	public abstract Map<String, List<TradeVO>> enterShortPositionAndPostExitTrade(List<TradeVO> openPositions, BotDefinition bot, ItemInfo itemInfo,
 			Map<String, Object> config) throws ZeroQuantityOrderedException, MarketDoesNotExistException, DataException;
 
 	/**
@@ -95,7 +102,7 @@ public abstract class LifeCycle extends BasePositionService {
 	 * @throws MarketDoesNotExistException
 	 * @throws DataException
 	 */
-	public abstract TradeVO extendLongPosition(ItemInfo itemInfo, List<TradeVO> openPositions, BotDefinition bot,
+	public abstract Map<String, List<TradeVO>> extendLongPosition(ItemInfo itemInfo, List<TradeVO> openPositions, BotDefinition bot,
 			Map<String, Object> config) throws ZeroQuantityOrderedException, MarketDoesNotExistException, DataException;
 
 	/**
@@ -109,7 +116,7 @@ public abstract class LifeCycle extends BasePositionService {
 	 * @throws MarketDoesNotExistException
 	 * @throws DataException
 	 */
-	public abstract TradeVO extendShortPosition(ItemInfo itemInfo, List<TradeVO> openPositions, BotDefinition bot,
+	public abstract Map<String, List<TradeVO>> extendShortPosition(ItemInfo itemInfo, List<TradeVO> openPositions, BotDefinition bot,
 			Map<String, Object> config) throws ZeroQuantityOrderedException, MarketDoesNotExistException, DataException;
 
 	/**
@@ -122,7 +129,7 @@ public abstract class LifeCycle extends BasePositionService {
 	 * @throws MarketDoesNotExistException
 	 * @throws DataException
 	 */
-	public abstract TradeVO stopLossLongPosition(ItemInfo itemInfo, List<TradeVO> openPositions, BotDefinition bot,
+	public abstract Map<String, List<TradeVO>> stopLossLongPosition(ItemInfo itemInfo, List<TradeVO> openPositions, BotDefinition bot,
 			Map<String, Object> config) throws MarketDoesNotExistException, DataException;
 
 	/**
@@ -135,14 +142,17 @@ public abstract class LifeCycle extends BasePositionService {
 	 * @throws MarketDoesNotExistException
 	 * @throws DataException
 	 */
-	public abstract TradeVO stopLossShortPosition(ItemInfo itemInfo, List<TradeVO> openPositions, BotDefinition bot,
+	public abstract Map<String, List<TradeVO>> stopLossShortPosition(ItemInfo itemInfo, List<TradeVO> openPositions, BotDefinition bot,
 			Map<String, Object> config) throws MarketDoesNotExistException, DataException;
-	
-	/**
-	 * Logs the closing of a position.
-	 * @param openPositions
-	 * @param itemInfo
-	 */
-	public abstract void logPositionClose(List<TradeVO> openPositions, ItemInfo itemInfo);
 
+	/**
+	 * checks if the position has been closed for an item
+	 * @param openPositionsForItem
+	 * @param itemInfo
+	 * @param bot
+	 * @return
+	 * @throws MarketDoesNotExistException 
+	 * @throws DataException 
+	 */
+	public abstract Boolean hasPositionBeenClosed(List<TradeVO> openPositionsForItem, ItemInfo itemInfo, BotDefinition bot) throws MarketDoesNotExistException, DataException;
 }

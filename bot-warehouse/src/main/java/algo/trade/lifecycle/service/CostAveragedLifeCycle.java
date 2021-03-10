@@ -6,6 +6,7 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.stereotype.Service;
 
@@ -41,11 +42,11 @@ public class CostAveragedLifeCycle extends LifeCycle {
 
 	@Override
 	public DecisionResponse performMonitorOperationForItem(ItemInfo itemInfo, BotDefinition bot,
-			List<TradeVO> openPositions, Map<String, Object> config)
+			List<TradeVO> allOpenPositions, Map<String, Object> config)
 			throws MarketDoesNotExistException, DataException, PositionOpenException {
 		// monitors an item for decision engine
 		DecisionResponse result = null;
-		List<TradeVO> openPositionsForItem = openPositions;
+		List<TradeVO> openPositionsForItem = allOpenPositions;
 		openPositionsForItem.removeIf(item -> !(itemInfo.getSymbol().equalsIgnoreCase(item.getTradeItem())));
 
 		MarketInterface marketClient = marketFactory.getClient(bot);
@@ -69,7 +70,7 @@ public class CostAveragedLifeCycle extends LifeCycle {
 					result = shortCondition;
 				}
 			}
-			
+
 			entryData = null;
 			longCondition = null;
 		} else {
@@ -79,14 +80,21 @@ public class CostAveragedLifeCycle extends LifeCycle {
 				// open long position: check for close followed by stop loss followed by
 				// extension
 
-				if (marketClient.isTradeFilled(bot, openPositionsForItem.get(openPositionsForItem.size() - 1),
-						serverTime)) {
+				if (hasPositionBeenClosed(allOpenPositions, itemInfo, bot)) {
 					LOG.info("The long position in " + itemInfo.getSymbol() + " was closed successfully at a profit.");
 					for (TradeVO trade : openPositionsForItem) {
-						trade.setTradeTime(new Timestamp(serverTime));
+						trade.setIsPositionClosed(true);
+						if (trade.getTradeTime() == null) {
+							trade.setTradeTime(new Timestamp(serverTime));
+						}
 					}
 					LOG.info("Trade profit : " + this.getTotalReturnFromTradesInList(openPositionsForItem));
-					logPositionClose(openPositions, itemInfo);
+					result = constructEmptyResponse();
+					result.setShouldBotActOnItem(true);
+					result.setConfigParameters(new ConcurrentHashMap<String, Object>());
+					result.getConfigParameters().put(SystemConstants.ITEM_INFO_KEY, itemInfo);
+					result.getConfigParameters().put(SystemConstants.DECISION_TAKING_ACTION_KEY, SystemConstants.POSITION_CLOSE_ACTION);
+//					result.set
 				} else {
 					Map<String, List<Kline>> correctionData = dataWrapper.getLongCorrectionMarketData(itemInfo, bot,
 							serverTime, config);
@@ -114,15 +122,20 @@ public class CostAveragedLifeCycle extends LifeCycle {
 			} else {
 				// open short position: check for close check for stop loss followed by
 				// extension
-				if (marketClient.isTradeFilled(bot, openPositionsForItem.get(openPositionsForItem.size() - 1),
-						serverTime)) {
-					LOG.info("The long position in " + itemInfo.getSymbol() + " was closed successfully at a profit.");
+				if (hasPositionBeenClosed(allOpenPositions, itemInfo, bot)) {
+					LOG.info("The short position in " + itemInfo.getSymbol() + " was closed successfully at a profit.");
 					for (TradeVO trade : openPositionsForItem) {
-						trade.setTradeTime(new Timestamp(serverTime));
+						trade.setIsPositionClosed(true);
+						if (trade.getTradeTime() == null) {
+							trade.setTradeTime(new Timestamp(serverTime));
+						}
 					}
 					LOG.info("Trade profit : " + this.getTotalReturnFromTradesInList(openPositionsForItem));
-					
-					logPositionClose(openPositions, itemInfo);
+					result = constructEmptyResponse();
+					result.setShouldBotActOnItem(true);
+					result.setConfigParameters(new ConcurrentHashMap<String, Object>());
+					result.getConfigParameters().put(SystemConstants.ITEM_INFO_KEY, itemInfo);
+					result.getConfigParameters().put(SystemConstants.DECISION_TAKING_ACTION_KEY, SystemConstants.POSITION_CLOSE_ACTION);
 				} else {
 					Map<String, List<Kline>> correctionData = dataWrapper.getShortCorrectionMarketData(itemInfo, bot,
 							serverTime, config);
@@ -157,7 +170,7 @@ public class CostAveragedLifeCycle extends LifeCycle {
 			result.setShouldBotActOnItem(false);
 		}
 
-//		LOG.info("Checked " + itemInfo);
+		// LOG.info("Checked " + itemInfo);
 
 		openPositionsForItem = null;
 		marketClient = null;
@@ -168,10 +181,12 @@ public class CostAveragedLifeCycle extends LifeCycle {
 	}
 
 	@Override
-	public TradeVO enterLongPositionAndPostExitTrade(List<TradeVO> openPositions, BotDefinition bot, ItemInfo itemInfo, Map<String, Object> config)
+	public Map<String, List<TradeVO>> enterLongPositionAndPostExitTrade(List<TradeVO> openPositions, BotDefinition bot,
+			ItemInfo itemInfo, Map<String, Object> config)
 			throws ZeroQuantityOrderedException, MarketDoesNotExistException, DataException {
 		// open a long position via market buy and post a limit sell trade to exit an
 		// opened position.
+		Map<String, List<TradeVO>> result = null;
 		TradeVO entryResult = null;
 		BigDecimal currentPrice = null;
 		MarketInterface marketClient = marketFactory.getClient(bot);
@@ -204,10 +219,17 @@ public class CostAveragedLifeCycle extends LifeCycle {
 					SystemConstants.LIMIT_ORDER, itemInfo, bot);
 
 			entryPosition.add(exitTrade);
-			entryPosition.forEach(item -> item.setPositionType(SystemConstants.LONG_POSITION));
-			
-			openPositions.addAll(entryPosition);
-			
+			entryPosition.forEach(item -> {
+				item.setBotName(bot.getBotName());
+				item.setMarketName(bot.getMarketName());
+				item.setLifeCycleName(bot.getLifeCycleName());
+				item.setStrategyName(bot.getStrategyName());
+				item.setPositionType(SystemConstants.LONG_POSITION);
+			});
+
+			result = new ConcurrentHashMap<String, List<TradeVO>>();
+			result.put(SystemConstants.ADD_TRADES + itemInfo.toString(), entryPosition);
+
 			entryPosition = null;
 			exitPrice = null;
 			exitTrade = null;
@@ -221,14 +243,16 @@ public class CostAveragedLifeCycle extends LifeCycle {
 		currentPrice = null;
 		valueAtRisk = null;
 
-		return entryResult;
+		return result;
 	}
 
 	@Override
-	public TradeVO enterShortPositionAndPostExitTrade(List<TradeVO> openPositions, BotDefinition bot, ItemInfo itemInfo, Map<String, Object> config)
+	public Map<String, List<TradeVO>> enterShortPositionAndPostExitTrade(List<TradeVO> openPositions, BotDefinition bot, ItemInfo itemInfo,
+			Map<String, Object> config)
 			throws ZeroQuantityOrderedException, MarketDoesNotExistException, DataException {
 		// open a short position via market sell and post limit buy to exit the
 		// position.
+		Map<String, List<TradeVO>> result = null;
 		TradeVO entryResult = null;
 		BigDecimal currentPrice = null;
 		MarketInterface marketClient = marketFactory.getClient(bot);
@@ -248,7 +272,7 @@ public class CostAveragedLifeCycle extends LifeCycle {
 			// non zero quantity post rounding. perform entry action.
 			entryResult = marketClient.postTrade(currentPrice, quantity, SystemConstants.SELL_SIDE,
 					SystemConstants.MARKET_ORDER, itemInfo, bot);
-			
+
 			List<TradeVO> entryPosition = new ArrayList<TradeVO>();
 			entryPosition.add(entryResult);
 
@@ -258,8 +282,17 @@ public class CostAveragedLifeCycle extends LifeCycle {
 					SystemConstants.LIMIT_ORDER, itemInfo, bot);
 
 			entryPosition.add(exitTrade);
-			entryPosition.forEach(item -> item.setPositionType(SystemConstants.SHORT_POSITION));
-			
+			entryPosition.forEach(item -> {
+				item.setBotName(bot.getBotName());
+				item.setMarketName(bot.getMarketName());
+				item.setLifeCycleName(bot.getLifeCycleName());
+				item.setStrategyName(bot.getStrategyName());
+				item.setPositionType(SystemConstants.SHORT_POSITION);
+			});
+
+			result = new ConcurrentHashMap<String, List<TradeVO>>();
+			result.put(SystemConstants.ADD_TRADES + itemInfo.toString(), entryPosition);
+
 			entryPosition = null;
 			exitPrice = null;
 			exitTrade = null;
@@ -273,15 +306,16 @@ public class CostAveragedLifeCycle extends LifeCycle {
 		currentPrice = null;
 		valueAtRisk = null;
 
-		return entryResult;
+		return result;
 	}
 
 	@Override
-	public TradeVO extendLongPosition(ItemInfo itemInfo, List<TradeVO> openPositions, BotDefinition bot,
+	public Map<String, List<TradeVO>> extendLongPosition(ItemInfo itemInfo, List<TradeVO> openPositions, BotDefinition bot,
 			Map<String, Object> config)
 			throws ZeroQuantityOrderedException, MarketDoesNotExistException, DataException {
 		// extends an open long position via market buy and post a limit sell trade to
 		// exit the cumulative position.
+		Map<String, List<TradeVO>> result = null;
 		TradeVO extensionResult = null;
 		BigDecimal currentPrice = null;
 		MarketInterface marketClient = marketFactory.getClient(bot);
@@ -301,26 +335,46 @@ public class CostAveragedLifeCycle extends LifeCycle {
 
 		if (quantity.compareTo(BigDecimal.ZERO) > 0) {
 			// non zero quantity post rounding. perform entry action.
+			result = new ConcurrentHashMap<String, List<TradeVO>>();
+			result.put(SystemConstants.ADD_TRADES + itemInfo.toString(), new ArrayList<TradeVO>());
+			result.put(SystemConstants.DELETE_TRADES + itemInfo.toString(), new ArrayList<TradeVO>());
+			
+			List<TradeVO> openPositionsForItem = new ArrayList<TradeVO>();
+			openPositionsForItem.addAll(openPositions);
+			openPositionsForItem.removeIf(item -> !(item.getTradeItem().equalsIgnoreCase(itemInfo.getSymbol())));
+			
 			extensionResult = marketClient.postTrade(currentPrice, quantity, SystemConstants.BUY_SIDE,
 					SystemConstants.MARKET_ORDER, itemInfo, bot);
-
-			TradeVO openSellOrder = openPositions.get(openPositions.size() - 1);
-			openPositions.add(extensionResult);
-
+			
+			openPositionsForItem.add(extensionResult);
+			result.get(SystemConstants.ADD_TRADES + itemInfo.toString()).add(extensionResult);
+			
+			TradeVO openSellOrder = null;
+			
+			for (TradeVO trade : openPositionsForItem) {
+				if (trade.getTradeTime() == null) {
+					openSellOrder = trade;
+					break;
+				}
+			}
+			
 			marketClient.cancelTrade(bot, openSellOrder, currentTime);
-			openPositions.removeIf(item -> item.getTradeOrderId().equals(openSellOrder.getTradeOrderId()));
+			result.get(SystemConstants.DELETE_TRADES + itemInfo.toString()).add(openSellOrder);
+			
+			String cancelledOrderId = openSellOrder.getTradeClientOrderId();
+			
+			openPositionsForItem.removeIf(item -> item.getTradeClientOrderId().equalsIgnoreCase(cancelledOrderId));
 
-			BigDecimal exitPrice = engineClient.getExitSellPrice(itemInfo, marketData, bot, openPositions,
-					currentTime);
+			BigDecimal exitPrice = engineClient.getExitSellPrice(itemInfo, marketData, bot, openPositionsForItem, currentTime);
 			BigDecimal exitQuantity = this.getTotalQuantityInPosition(openPositions);
 
 			TradeVO exitTrade = marketClient.postTrade(exitPrice, exitQuantity, SystemConstants.SELL_SIDE,
 					SystemConstants.LIMIT_ORDER, itemInfo, bot);
 			exitTrade.setPositionType(SystemConstants.LONG_POSITION);
-			
-			openPositions.add(exitTrade);
 
-			openPositions = null;
+			openPositions.add(exitTrade);
+			result.get(SystemConstants.ADD_TRADES + itemInfo.toString()).add(exitTrade);
+			
 			exitPrice = null;
 			exitTrade = null;
 			exitQuantity = null;
@@ -334,15 +388,16 @@ public class CostAveragedLifeCycle extends LifeCycle {
 		quantity = null;
 		currentPrice = null;
 
-		return extensionResult;
+		return result;
 	}
 
 	@Override
-	public TradeVO extendShortPosition(ItemInfo itemInfo, List<TradeVO> openPositions, BotDefinition bot,
+	public Map<String, List<TradeVO>> extendShortPosition(ItemInfo itemInfo, List<TradeVO> openPositions, BotDefinition bot,
 			Map<String, Object> config)
 			throws ZeroQuantityOrderedException, MarketDoesNotExistException, DataException {
 		// extends an open long position via market buy and post a limit sell trade to
 		// exit the cumulative position.
+		Map<String, List<TradeVO>> result = null;
 		TradeVO extensionResult = null;
 		BigDecimal currentPrice = null;
 		MarketInterface marketClient = marketFactory.getClient(bot);
@@ -363,21 +418,27 @@ public class CostAveragedLifeCycle extends LifeCycle {
 
 		if (quantity.compareTo(BigDecimal.ZERO) > 0) {
 			// non zero quantity post rounding. perform entry action.
+			result = new ConcurrentHashMap<String, List<TradeVO>>();
+			result.put(SystemConstants.ADD_TRADES + itemInfo.toString(), new ArrayList<TradeVO>());
+			result.put(SystemConstants.DELETE_TRADES + itemInfo.toString(), new ArrayList<TradeVO>());
+			
 			extensionResult = marketClient.postTrade(currentPrice, quantity, SystemConstants.SELL_SIDE,
 					SystemConstants.MARKET_ORDER, itemInfo, bot);
 			TradeVO openBuyOrder = openPositions.get(openPositions.size() - 1);
 			openPositions.add(extensionResult);
-
+			result.get(SystemConstants.ADD_TRADES + itemInfo.toString()).add(extensionResult);
+			
 			marketClient.cancelTrade(bot, openBuyOrder, currentTime);
-
-			BigDecimal exitPrice = engineClient.getExitBuyPrice(itemInfo, marketData, bot, openPositions,
-					currentTime);
+			result.get(SystemConstants.DELETE_TRADES + itemInfo.toString()).add(openBuyOrder);
+			
+			BigDecimal exitPrice = engineClient.getExitBuyPrice(itemInfo, marketData, bot, openPositions, currentTime);
 			exitPrice = exitPrice.setScale(itemInfo.getPricePrecision(), RoundingMode.CEILING);
 			BigDecimal exitQuantity = this.getTotalQuantityInPosition(openPositions);
 
 			TradeVO exitTrade = marketClient.postTrade(exitPrice, exitQuantity, SystemConstants.BUY_SIDE,
 					SystemConstants.LIMIT_ORDER, itemInfo, bot);
-			exitTrade.setPositionType(SystemConstants.LONG_POSITION);
+			exitTrade.setPositionType(SystemConstants.SHORT_POSITION);
+			result.get(SystemConstants.ADD_TRADES + itemInfo.toString()).add(exitTrade);
 			
 			openPositions.add(exitTrade);
 			openPositions = null;
@@ -393,13 +454,14 @@ public class CostAveragedLifeCycle extends LifeCycle {
 		quantity = null;
 		currentPrice = null;
 
-		return extensionResult;
+		return result;
 	}
 
 	@Override
-	public TradeVO stopLossLongPosition(ItemInfo itemInfo, List<TradeVO> currentPosition, BotDefinition bot,
+	public Map<String, List<TradeVO>> stopLossLongPosition(ItemInfo itemInfo, List<TradeVO> currentPosition, BotDefinition bot,
 			Map<String, Object> config) throws MarketDoesNotExistException, DataException {
 		// stop-losses an open long position through a market sell order.
+		Map<String, List<TradeVO>> result = null;
 		TradeVO stopLossResult = null;
 		BigDecimal currentPrice = null;
 		MarketInterface marketClient = marketFactory.getClient(bot);
@@ -408,9 +470,14 @@ public class CostAveragedLifeCycle extends LifeCycle {
 		Map<String, List<Kline>> marketData = dataFactory.getDataWrapperForLifeCycle(bot)
 				.getLongCorrectionMarketData(itemInfo, bot, currentTime, config);
 
-		TradeVO openBuyOrder = currentPosition.get(currentPosition.size() - 1);
-		marketClient.cancelTrade(bot, openBuyOrder, currentTime);
-
+		result = new ConcurrentHashMap<String, List<TradeVO>>();
+		result.put(SystemConstants.ADD_TRADES + itemInfo.toString(), new ArrayList<TradeVO>());
+		result.put(SystemConstants.DELETE_TRADES + itemInfo.toString(), new ArrayList<TradeVO>());
+		
+		TradeVO openSellOrder = currentPosition.get(currentPosition.size() - 1);
+		marketClient.cancelTrade(bot, openSellOrder, currentTime);
+		result.get(SystemConstants.DELETE_TRADES + itemInfo.toString()).add(openSellOrder);
+		
 		BigDecimal totalQuantityInPosition = this.getTotalQuantityInPosition(currentPosition);
 		for (String klineSet : marketData.keySet()) {
 			currentPrice = marketData.get(klineSet).get(marketData.get(klineSet).size() - 1).getClose();
@@ -419,18 +486,20 @@ public class CostAveragedLifeCycle extends LifeCycle {
 
 		stopLossResult = marketClient.postTrade(currentPrice, totalQuantityInPosition, SystemConstants.SELL_SIDE,
 				SystemConstants.MARKET_ORDER, itemInfo, bot);
+		result.get(SystemConstants.ADD_TRADES + itemInfo.toString()).add(stopLossResult);
 
 		totalQuantityInPosition = null;
 		currentPrice = null;
-		openBuyOrder = null;
+		openSellOrder = null;
 
-		return stopLossResult;
+		return result;
 	}
 
 	@Override
-	public TradeVO stopLossShortPosition(ItemInfo itemInfo, List<TradeVO> currentPosition, BotDefinition bot,
+	public Map<String, List<TradeVO>> stopLossShortPosition(ItemInfo itemInfo, List<TradeVO> currentPosition, BotDefinition bot,
 			Map<String, Object> config) throws MarketDoesNotExistException, DataException {
 		// stop-losses an open short position through a market buy order.
+		Map<String, List<TradeVO>> result = null;
 		TradeVO stopLossResult = null;
 		BigDecimal currentPrice = null;
 		MarketInterface marketClient = marketFactory.getClient(bot);
@@ -439,9 +508,14 @@ public class CostAveragedLifeCycle extends LifeCycle {
 		Map<String, List<Kline>> marketData = dataFactory.getDataWrapperForLifeCycle(bot)
 				.getShortCorrectionMarketData(itemInfo, bot, currentTime, config);
 
-		TradeVO openSellOrder = currentPosition.get(currentPosition.size() - 1);
-		marketClient.cancelTrade(bot, openSellOrder, currentTime);
-
+		TradeVO openBuyOrder = currentPosition.get(currentPosition.size() - 1);
+		marketClient.cancelTrade(bot, openBuyOrder, currentTime);
+		
+		result = new ConcurrentHashMap<String, List<TradeVO>>();
+		result.put(SystemConstants.ADD_TRADES + itemInfo.toString(), new ArrayList<TradeVO>());
+		result.put(SystemConstants.DELETE_TRADES + itemInfo.toString(), new ArrayList<TradeVO>());
+		result.get(SystemConstants.DELETE_TRADES + itemInfo.toString()).add(openBuyOrder);
+		
 		BigDecimal totalQuantityInPosition = this.getTotalQuantityInPosition(currentPosition);
 		for (String klineSet : marketData.keySet()) {
 			currentPrice = marketData.get(klineSet).get(marketData.get(klineSet).size() - 1).getClose();
@@ -450,19 +524,29 @@ public class CostAveragedLifeCycle extends LifeCycle {
 
 		stopLossResult = marketClient.postTrade(currentPrice, totalQuantityInPosition, SystemConstants.BUY_SIDE,
 				SystemConstants.MARKET_ORDER, itemInfo, bot);
-
+		result.get(SystemConstants.ADD_TRADES + itemInfo.toString()).add(stopLossResult);
+		
 		totalQuantityInPosition = null;
 		currentPrice = null;
-		openSellOrder = null;
+		openBuyOrder = null;
 
-		return stopLossResult;
+		return result;
 	}
 
 	@Override
-	public void logPositionClose(List<TradeVO> openPositions, ItemInfo itemInfo) {
-
-		openPositions.removeIf(item -> item.getTradeItem().equalsIgnoreCase(itemInfo.getSymbol()));
+	public Boolean hasPositionBeenClosed(List<TradeVO> openPositions, ItemInfo itemInfo, BotDefinition bot) throws MarketDoesNotExistException, DataException {
+		MarketInterface marketClient = marketFactory.getClient(bot);
 		
+		List<TradeVO> openPositionsForItem = new ArrayList<TradeVO>();
+		openPositionsForItem.addAll(openPositions);
+		openPositionsForItem.removeIf(item -> itemInfo.getSymbol().equalsIgnoreCase(item.getTradeItem()));
+		
+		// this will yield only one position which is the cumulative exit trade
+		openPositionsForItem.removeIf(item -> item.getTradeTime() != null);
+		
+		Boolean result = marketClient.isTradeFilled(bot, openPositionsForItem.get(0), marketClient.getServerTime(bot));
+		
+		return result;
 	}
 
 }

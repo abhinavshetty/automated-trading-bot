@@ -52,6 +52,11 @@ public class SystemConstants {
 	public static final String SHORT_EXTENSION_THRESHOLD_KEY = "SHORT_EXTENSION_THRESHOLD";
 	public static final String SHORT_STOP_LOSS_THRESHOLD_KEY = "SHORT_STOP_LOSS_THRESHOLD";
 	public static final String ITEM_INFO_KEY = "ITEM_INFO";
+	
+	// keys for decision logging
+	public static final String ADD_TRADES = "ADD";
+	public static final String UPDATE_TRADES = "UPDATE";
+	public static final String DELETE_TRADES = "DELETE";
 
 	// time periods
 	public static final String ONE_DAY = "1d";
@@ -64,4 +69,8 @@ public class SystemConstants {
 	public static final String QUARTER_HOUR = "15m";
 	public static final String FIVE_MINUTES = "5m";
 	public static final String ONE_MINUTE = "1m";
+
+	public static final String POSITION_CLOSE_ACTION = "POSITION_CLOSE";
+
+	public static final Object UPDATED_POSITIONS_KEY = "POSITIONS_UPDATED";
 }

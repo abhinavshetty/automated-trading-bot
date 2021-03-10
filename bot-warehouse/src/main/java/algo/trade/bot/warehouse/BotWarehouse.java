@@ -38,7 +38,7 @@ public class BotWarehouse extends BaseService {
 	 * initializes resources used in the bot called after application context is
 	 * constructed and before application is ready.
 	 */
-	@Scheduled(initialDelay = 10000, fixedRate = 60000)
+	@Scheduled(initialDelay = 10000, fixedDelay = 60000)
 	public final void initializeBots() {
 		// initialize all bots definitions. Use databases to manage here.
 		if (botDefinitions == null) {
